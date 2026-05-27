@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './surfaces/dashboard/Layout'
 import Dashboard from './surfaces/dashboard/Dashboard'
+import Finance from './layers/finance/Finance'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -17,7 +18,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
-        <Route path="finans" element={<Placeholder name="Finans" />} />
+        <Route path="finans" element={<Finance />} />
         <Route path="vergi" element={<Placeholder name="Vergi" />} />
         <Route path="hukuk" element={<Placeholder name="Hukuk" />} />
         <Route path="ik" element={<Placeholder name="İnsan Kaynakları" />} />
