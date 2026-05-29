@@ -59,7 +59,7 @@ import {
     const ratioIcon = { good: '◆', warn: '!', bad: '✗' }
   
     const kpis = [
-      { label: 'Net Nakit', value: fmt(cash.netCash), sub: `${runway} ay pist`, delta: '+8.2%', up: true, spark: sparkData(true) },
+      { label: 'Net Nakit', value: fmt(cash.netCash), sub:`nakit ömrü ${runway} ay`, delta: '+8.2%', up: true, spark: sparkData(true) },
       { label: 'Toplam Alacak', value: fmt(totalReceivables), sub: `${fmt(overdueReceivables)} gecikmiş`, delta: '+12.4%', up: true, spark: sparkData(true) },
       { label: 'Toplam Borç', value: fmt(totalPayables), sub: `${fmt(upcomingPayables)} 30 günde`, delta: '-3.1%', up: false, spark: sparkData(false) },
       { label: 'Aylık Gider', value: fmt(monthlyExpenses), sub: 'bu ay', delta: '+5.8%', up: false, spark: sparkData(false) },
