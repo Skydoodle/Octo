@@ -17,10 +17,10 @@ interface Props {
 const inputStyle = {
   width: '100%',
   padding: '10px 12px',
-  border: '1px solid #E2DDD4',
-  background: '#fff',
+  border: '1px solid rgb(var(--line))',
+  background: 'rgb(var(--surface))',
   fontSize: '13px',
-  color: '#1A1A1A',
+  color: 'rgb(var(--ink))',
   outline: 'none',
   fontFamily: 'DM Sans, sans-serif',
 }
@@ -28,7 +28,7 @@ const inputStyle = {
 const labelStyle = {
   fontFamily: 'monospace',
   fontSize: '10px',
-  color: '#8A8680',
+  color: 'rgb(var(--ink-mute))',
   letterSpacing: '0.08em',
   textTransform: 'uppercase' as const,
   marginBottom: '6px',
@@ -100,10 +100,10 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
               onClick={() => setType(t)}
               style={{
                 flex: 1, padding: '10px',
-                border: '1px solid #E2DDD4',
-                borderRight: t === 'sales' ? 'none' : '1px solid #E2DDD4',
-                background: type === t ? '#1A1A1A' : '#fff',
-                color: type === t ? '#fff' : '#8A8680',
+                border: '1px solid rgb(var(--line))',
+                borderRight: t === 'sales' ? 'none' : '1px solid rgb(var(--line))',
+                background: type === t ? 'rgb(var(--ink))' : 'rgb(var(--surface))',
+                color: type === t ? 'rgb(var(--surface))' : 'rgb(var(--ink-mute))',
                 fontSize: '13px', fontWeight: type === t ? 500 : 400,
                 cursor: 'pointer',
               }}
@@ -190,7 +190,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
             <button
               onClick={() => removeLine(line.id)}
               disabled={lineItems.length === 1}
-              style={{ background: 'none', border: '1px solid #E2DDD4', cursor: lineItems.length === 1 ? 'not-allowed' : 'pointer', color: '#8A8680', fontSize: '16px' }}
+              style={{ background: 'none', border: '1px solid rgb(var(--line))', cursor: lineItems.length === 1 ? 'not-allowed' : 'pointer', color: 'rgb(var(--ink-mute))', fontSize: '16px' }}
             >
               ×
             </button>
@@ -199,26 +199,26 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
 
         <button
           onClick={addLine}
-          style={{ padding: '8px 16px', background: 'none', border: '1px dashed #E2DDD4', color: '#8A8680', fontSize: '13px', cursor: 'pointer', marginTop: '4px' }}
+          style={{ padding: '8px 16px', background: 'none', border: '1px dashed rgb(var(--line))', color: 'rgb(var(--ink-mute))', fontSize: '13px', cursor: 'pointer', marginTop: '4px' }}
         >
           + Satır ekle
         </button>
       </div>
 
       {/* Totals */}
-      <div style={{ background: '#fff', border: '1px solid #E2DDD4', padding: '16px 20px', marginBottom: '24px' }}>
+      <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', padding: '16px 20px', marginBottom: '24px' }}>
         {[
           ['Ara Toplam', fmt(subtotal)],
           ['KDV', fmt(vatAmount)],
         ].map(([l, v]) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ fontSize: '13px', color: '#8A8680' }}>{l}</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#1A1A1A' }}>{v}</div>
+            <div style={{ fontSize: '13px', color: 'rgb(var(--ink-mute))' }}>{l}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgb(var(--ink))' }}>{v}</div>
           </div>
         ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid #E2DDD4' }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: '#1A1A1A' }}>Genel Toplam</div>
-          <div style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 500, color: '#C34B4B' }}>{fmt(total)}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid rgb(var(--line))' }}>
+          <div style={{ fontSize: '14px', fontWeight: 500, color: 'rgb(var(--ink))' }}>Genel Toplam</div>
+          <div style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 500, color: 'rgb(var(--crimson))' }}>{fmt(total)}</div>
         </div>
       </div>
 
@@ -226,19 +226,19 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
         <button
           onClick={onClose}
-          style={{ padding: '10px 20px', background: 'none', border: '1px solid #E2DDD4', color: '#8A8680', fontSize: '13px', cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'none', border: '1px solid rgb(var(--line))', color: 'rgb(var(--ink-mute))', fontSize: '13px', cursor: 'pointer' }}
         >
           İptal
         </button>
         <button
           onClick={() => { handleSave() }}
-          style={{ padding: '10px 20px', background: '#1A1A1A', border: 'none', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'rgb(var(--ink))', border: 'none', color: 'rgb(var(--surface))', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
         >
           Taslak Kaydet
         </button>
         <button
           onClick={handleSave}
-          style={{ padding: '10px 20px', background: '#C34B4B', border: 'none', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'rgb(var(--crimson))', border: 'none', color: 'rgb(var(--surface))', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
         >
           Faturalandır →
         </button>

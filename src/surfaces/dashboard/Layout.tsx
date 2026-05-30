@@ -10,7 +10,7 @@ const navItems = [
   { to: '/dashboard/finans', icon: Wallet, label: 'Finans' },
   { to: '/dashboard/vergi', icon: Receipt, label: 'Vergi' },
   { to: '/dashboard/hukuk', icon: Scale, label: 'Hukuk' },
-  { to: '/dashboard/ik', icon: Users, label: '\u0130nsan Kaynaklar\u0131' },
+  { to: '/dashboard/ik', icon: Users, label: 'İnsan Kaynakları' },
   { to: '/dashboard/operasyon', icon: Boxes, label: 'Operasyon' },
   { to: '/dashboard/voice', icon: Mic, label: 'Octo Voice' },
   { to: '/dashboard/denetim', icon: ShieldCheck, label: 'Denetim' },
@@ -29,7 +29,7 @@ export default function Layout() {
         </div>
 
         <div className="mb-3 px-2">
-          <span className="label text-ink-mute">Beyin Kollar\u0131</span>
+          <span className="label text-ink-mute">Beyin Kolları</span>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
@@ -60,7 +60,7 @@ export default function Layout() {
             <ExternalLink size={17} className="shrink-0" />
             <span>Ana Sayfa</span>
           </Link>
-          <div className="label text-ink-mute px-3 pt-3">v0.1.0 \u2014 alpha</div>
+          <div className="label text-ink-mute px-3 pt-3">v0.1.0 — alpha</div>
         </div>
       </aside>
 

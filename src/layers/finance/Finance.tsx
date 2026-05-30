@@ -17,15 +17,15 @@ export default function Finance() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
       <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#C34B4B', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgb(var(--crimson))', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
           Katman — 01
         </div>
-        <h1 style={{ fontSize: '24px', fontWeight: 500, color: '#1A1A1A', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 500, color: 'rgb(var(--ink))', letterSpacing: '-0.02em' }}>
           Finans
         </h1>
       </div>
 
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #E2DDD4', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid rgb(var(--line))', marginBottom: '24px' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -33,12 +33,12 @@ export default function Finance() {
             style={{
               padding: '10px 20px',
               border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid #C34B4B' : '2px solid transparent',
+              borderBottom: activeTab === tab.id ? '2px solid rgb(var(--crimson))' : '2px solid transparent',
               background: 'none',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: activeTab === tab.id ? 500 : 400,
-              color: activeTab === tab.id ? '#C34B4B' : '#8A8680',
+              color: activeTab === tab.id ? 'rgb(var(--crimson))' : 'rgb(var(--ink-mute))',
               transition: 'all 0.15s',
               marginBottom: '-1px',
             }}
