@@ -57,22 +57,22 @@ Net kar tahmini: ${Math.round(revenueThisMonth - monthlyExpenses).toLocaleString
 === ALACAKLAR ===
 Toplam acik alacak: ${Math.round(totalReceivables).toLocaleString('tr-TR')} TL
 Gecikmiş alacak: ${Math.round(overdueReceivables).toLocaleString('tr-TR')} TL
-${overdueInvoices.map(inv => `  - ${inv.contactName}: ${inv.total.toLocaleString('tr-TR')} TL (${Math.floor((today.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24))} gun gecikmiş)`).join('\n')}
+${overdueInvoices.map(inv => `  - ${inv.contactName}: ${inv.total.toLocaleString('tr-TR')} TL (${Math.floor((today.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24))} gün gecikmiş)`).join('\n')}
 
-=== ACİL ÖDEMELER (7 gun) ===
+=== ACİL ÖDEMELER (7 gün) ===
 ${urgentPayables.length > 0
-  ? urgentPayables.map(item => `  - ${item.invoice.contactName}: ${item.invoice.total.toLocaleString('tr-TR')} TL (${item.daysUntilDue} gun kaldi)`).join('\n')
+  ? urgentPayables.map(item => `  - ${item.invoice.contactName}: ${item.invoice.total.toLocaleString('tr-TR')} TL (${item.daysUntilDue} gün kaldi)`).join('\n')
   : '  Yok'}
-Toplam 7 gunluk yukumluluk: ${totalUpcoming7Days.toLocaleString('tr-TR')} TL
+Toplam 7 günluk yukumluluk: ${totalUpcoming7Days.toLocaleString('tr-TR')} TL
 Odemeler sonrasi tahmini nakit: ${Math.round(cashAfter7Days).toLocaleString('tr-TR')} TL
 
-=== YAKLAŞAN YUKUMLULUKLEr (30 gun) ===
-${upcomingObligations.map(o => `  - ${o.description}: ${o.amount.toLocaleString('tr-TR')} TL (${o.daysUntil} gun sonra)`).join('\n')}
-Toplam 30 gunluk yukumluluk: ${totalUpcoming30Days.toLocaleString('tr-TR')} TL
-30 gun sonrasi tahmini nakit: ${Math.round(cashAfter30Days).toLocaleString('tr-TR')} TL
+=== YAKLAŞAN YUKUMLULUKLEr (30 gün) ===
+${upcomingObligations.map(o => `  - ${o.description}: ${o.amount.toLocaleString('tr-TR')} TL (${o.daysUntil} gün sonra)`).join('\n')}
+Toplam 30 günluk yukumluluk: ${totalUpcoming30Days.toLocaleString('tr-TR')} TL
+30 gün sonrasi tahmini nakit: ${Math.round(cashAfter30Days).toLocaleString('tr-TR')} TL
 
 === RİSK ANALİZİ ===
-${cashAfter7Days < 100000 ? 'KRİTİK: 7 gun icinde nakit kritik seviyeye dusuyor' : cashAfter7Days < 200000 ? 'UYARI: 7 gun icinde nakit azaliyor' : 'Nakit pozisyonu saglikli'}
+${cashAfter7Days < 100000 ? 'KRİTİK: 7 gün icinde nakit kritik seviyeye dusuyor' : cashAfter7Days < 200000 ? 'UYARI: 7 gün icinde nakit azaliyor' : 'Nakit pozisyonu saglikli'}
 ${overdueReceivables > 50000 ? `KRİTİK: ${Math.round(overdueReceivables).toLocaleString('tr-TR')} TL gecikmiş alacak tahsilat riski olusturuyor` : ''}
 ${runway < 3 ? 'KRİTİK: Nakit omru 3 ayin altinda' : runway < 6 ? 'UYARI: Nakit omru 6 ayin altinda' : ''}
 `
@@ -95,10 +95,10 @@ export async function generateBriefing(apiKey: string): Promise<string> {
         {
           role: 'system',
           content: `Sen Octo'sun — Turk KOBI sahipleri icin yapay zeka is danismanisin.
-Her sabah isletme sahibine o gunun finansal durumunu anlatan kisa, net ve eyleme gecilebilir bir brifing hazirlarsin.
+Her sabah isletme sahibine o günun finansal durumunu anlatan kisa, net ve eyleme gecilebilir bir brifing hazirlarsin.
 
 PERSONA:
-- 15 yillik deneyimli bir mali musavir, IK uzmani ve is danismaninin birlesimi gibi konus
+- 15 yıllık deneyimli bir mali müşavir, IK uzmani ve is danismaninin birlesimi gibi konus
 - Sayilari somut baglamа oturt — rakamlari tek basina verme, ne anlama geldigini soyle
 - Turk is dunyasina ozgu terimleri kullan (SGK, KDV, e-fatura vb.)
 - Ciddi ama eriselebilir bir ton — panik yaratma ama gercekleri saklama

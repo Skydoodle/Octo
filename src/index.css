@@ -1,23 +1,20 @@
-@import "tailwindcss";
-
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 :root {
-  --crimson: #C34B4B;
-  --graphite: #1A1A1A;
-  --ivory: #F7F4EE;
-  --ivory-dark: #EDE9E0;
-  --stone: #8A8680;
-  --border: #E2DDD4;
+  --paper:247 245 240;--surface:255 254 251;--surface-2:242 239 232;
+  --line:226 221 211;--ink:28 27 26;--ink-soft:74 71 67;--ink-mute:138 133 125;
+  --crimson:195 75 75;--crimson-soft:224 196 196;--positive:74 122 96;--warn:184 124 58;
 }
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+.dark {
+  --paper:18 18 17;--surface:26 25 24;--surface-2:34 33 31;
+  --line:48 46 43;--ink:243 240 234;--ink-soft:196 191 183;--ink-mute:134 129 121;
+  --crimson:214 100 100;--crimson-soft:96 54 54;--positive:122 178 146;--warn:210 158 96;
 }
-
-body {
-  background: var(--ivory);
-  color: var(--graphite);
-  font-family: 'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+*{border-color:rgb(var(--line));box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background-color:rgb(var(--paper));color:rgb(var(--ink));font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.label{font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.14em;font-size:0.6875rem}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-thumb{background:rgb(var(--line));border-radius:99px;border:2px solid rgb(var(--paper))}
