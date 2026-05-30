@@ -3,6 +3,7 @@ import Landing from "./pages/Landing"
 import Layout from "./surfaces/dashboard/Layout"
 import Dashboard from "./surfaces/dashboard/Dashboard"
 import Finance from "./layers/finance/Finance"
+import Vergi from './layers/tax/Vergi'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -21,7 +22,7 @@ export default function App() {
       <Route path="/dashboard" element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="finans" element={<Finance />} />
-        <Route path="vergi" element={<Placeholder name="Vergi" />} />
+        <Route path="vergi" element={<Vergi />} />
         <Route path="hukuk" element={<Placeholder name="Hukuk" />} />
         <Route path="ik" element={<Placeholder name="IK" />} />
         <Route path="operasyon" element={<Placeholder name="Operasyon" />} />
