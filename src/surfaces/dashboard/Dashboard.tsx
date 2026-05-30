@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sparkles, ArrowUpRight, ArrowDownRight, Check, AlertTriangle } from 'lucide-react'
 import { Card, Label } from '../../shared/utils/ui'
 import { useBriefing } from '../../orchestrator/useBriefing'
+import type { Aciliyet } from '../../orchestrator/orchestrator'
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { mockInvoices, mockAccounts, mockTransactions } from '../../layers/finance/mockData'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../../layers/finance/logic/cashPosition'
@@ -9,6 +10,13 @@ import { getTotalReceivables, getOverdueReceivables } from '../../layers/finance
 import { getTotalPayables, getUpcomingPayables } from '../../layers/finance/logic/apSchedule'
 
 const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
+
+const dotColor: Record<Aciliyet, string> = {
+  kritik: 'bg-crimson',
+  dikkat: 'bg-warn',
+  stabil: 'bg-positive',
+  notr: 'bg-ink-mute',
+}
 
 const cashflow = [
   { m: 'Ara', gelir: 4.1, gider: 3.2 },
@@ -19,16 +27,9 @@ const cashflow = [
   { m: 'May', gelir: 5.6, gider: 4.0 },
 ]
 
-const feed = [
-  { arm: 'Hukuk', title: 'Tedarikci sözleşmesinde otomatik yenileme', detail: 'Demir Lojistik 12 gün içinde otomatik yenileniyor.', impact: '₺240K/yil', severity: 'critical', path: '/dashboard/hukuk' },
-  { arm: 'Vergi', title: 'KDV iadesi fırsatı kullanılmadı', detail: 'İhracat işlemlerinizden ₺96K KDV iadesi başvurusu yapılmamış.', impact: '+₺96K', severity: 'attention', path: '/dashboard/vergi' },
-  { arm: 'Finans', title: 'Tekrarlayan ödemede çift kayıt', detail: 'Nisan ayinda ayni faturaya iki ödeme yapılmış olabilir.', impact: '₺18K', severity: 'attention', path: '/dashboard/finans' },
-  { arm: 'IK', title: 'SGK prim orani güncellemesi', detail: '3 çalışanin prim matrahı yeniden hesaplanmalı.', impact: '₺7K/ay', severity: 'info', path: '/dashboard/ik' },
-]
-
 const audit = [
   { area: 'Banka Mutabakatı', status: 'ok', note: 'Tüm hesaplar eşleşti' },
-  { area: 'e-Fatura Uyumu', status: 'warn', note: '3 fatura uymsuz' },
+  { area: 'e-Fatura Uyumu', status: 'warn', note: '3 fatura uyumsuz' },
   { area: 'KDV Beyanname', status: 'ok', note: 'Taslak hazır' },
   { area: 'KVKK Envanteri', status: 'warn', note: 'Veri envanteri 40 gün eski' },
   { area: 'Muhtasar', status: 'ok', note: 'Zamanında' },
@@ -36,16 +37,10 @@ const audit = [
 
 const horizon = [
   { day: '+3 gün', event: 'Demir Lojistik sözleşme yenilemesi', tone: 'crimson' },
-  { day: '+9 gün', event: 'KDV beyanname son günu', tone: 'warn' },
-  { day: '+14 gün', event: '₺1.12M tahsilat vadesi', tone: 'positive' },
+  { day: '+9 gün', event: 'KDV beyanname son günü', tone: 'warn' },
+  { day: '+14 gün', event: 'Tahsilat vadesi', tone: 'positive' },
   { day: '+22 gün', event: 'SGK bildirim dönemi', tone: 'mute' },
 ]
-
-const sevStyle: Record<string, { dot: string; label: string }> = {
-  critical: { dot: 'bg-crimson', label: 'Kritik' },
-  attention: { dot: 'bg-warn', label: 'Dikkat' },
-  info: { dot: 'bg-ink-mute', label: 'Bilgi' },
-}
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -82,14 +77,31 @@ export default function Dashboard() {
               disabled={loading}
               className="label text-ink-mute hover:text-crimson transition-colors disabled:opacity-40"
             >
-              {loading ? 'oluşturuluyor...' : '↺ Yenile'}
+              {loading ? 'oluşturuluyor...' : 'Yenile'}
             </button>
           </div>
-          <p className="text-[0.95rem] leading-relaxed text-ink-soft">
-            {loading ? 'Yapay zeka brifing hazırlıyor...' : briefing}
-          </p>
+
+          {loading ? (
+            <p className="text-[0.95rem] italic leading-relaxed text-ink-mute">Yapay zeka brifing hazırlıyor...</p>
+          ) : (
+            <>
+              <p className="text-[0.95rem] leading-relaxed text-ink-soft">{briefing.ozet}</p>
+              <div className="mt-5 space-y-3">
+                {briefing.kollar.map((k, i) => (
+                  <div key={i} className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
+                    <span className={'mt-1 h-2 w-2 shrink-0 rounded-full ' + (dotColor[k.aciliyet] || 'bg-ink-mute')} />
+                    <div>
+                      <span className="label text-ink-mute">{k.kol}</span>
+                      <p className="mt-1 text-sm text-ink">{k.metin}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-3 py-1.5">
-            <span className="label text-ink-mute">Müşaviriniz icin hazırlandı</span>
+            <span className="label text-ink-mute">Müşaviriniz için hazırlandı</span>
           </div>
         </div>
       </Card>
@@ -98,69 +110,31 @@ export default function Dashboard() {
         {kpis.map((k, i) => {
           const up = k.delta >= 0
           return (
-            <Card
-              key={k.label}
-              className="p-5 cursor-pointer hover:border-crimson/40 transition-colors"
-              delay={80 + i * 60}
-            >
+            <Card key={k.label} className="p-5 cursor-pointer hover:border-crimson/40 transition-colors" delay={80 + i * 60}>
               <div onClick={() => navigate(k.path)}>
                 <Label>{k.label}</Label>
-                <div className="mt-3 font-mono text-2xl font-medium tracking-tight text-ink">
-                  {k.value}
-                </div>
+                <div className="mt-3 font-mono text-2xl font-medium tracking-tight text-ink">{k.value}</div>
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className={"inline-flex items-center gap-0.5 text-xs font-medium " + (up ? "text-positive" : "text-crimson")}>
+                  <span className={'inline-flex items-center gap-0.5 text-xs font-medium ' + (up ? 'text-positive' : 'text-crimson')}>
                     {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
                     {Math.abs(k.delta)}%
                   </span>
-                  <span className="text-xs text-ink-mute">· {k.hint}</span>
+                  <span className="text-xs text-ink-mute">{k.hint}</span>
                 </div>
               </div>
-           </Card>
+            </Card>
           )
         })}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2" delay={160}>
-          <div className="mb-5 flex items-center justify-between">
-            <Label>Zeka Akışı</Label>
-            <span className="label text-ink-mute">{feed.length} sinyal</span>
-          </div>
-          <div className="space-y-2">
-            {feed.map((f, i) => (
-              <div
-                key={i}
-                onClick={() => navigate(f.path)}
-                className="group flex gap-4 rounded-lg border border-transparent p-3 transition-colors hover:border-line hover:bg-surface-2 cursor-pointer"
-              >
-                <span className={"mt-1.5 h-2 w-2 shrink-0 rounded-full " + sevStyle[f.severity].dot} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="label text-ink-mute">{f.arm}</span>
-                    <span className="label text-ink-mute">{sevStyle[f.severity].label}</span>
-                  </div>
-                  <p className="mt-1 text-sm font-medium text-ink">{f.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">{f.detail}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="font-mono text-sm font-medium text-ink">{f.impact}</div>
-                  <div className="label mt-0.5 text-crimson opacity-0 group-hover:opacity-100 transition-opacity">git →</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="p-6" delay={200}>
-          <div className="mb-4">
-            <Label>Nakit Akisi — 6 Ay</Label>
-          </div>
+          <div className="mb-4"><Label>Nakit Akışı 6 Ay</Label></div>
           <div className="mb-3 flex items-center gap-4 text-xs text-ink-mute">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-crimson" />Gelir</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-mute" />Gider</span>
           </div>
-          <div className="h-48">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cashflow} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
                 <defs>
@@ -174,26 +148,21 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fill: 'rgb(138 133 125)', fontSize: 10 }} />
-                <Tooltip
-                  contentStyle={{ background: 'rgb(255 254 251)', border: '1px solid rgb(226 221 211)', borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: number) => [v + 'M TL', '']}
-                />
+                <Tooltip contentStyle={{ background: 'rgb(255 254 251)', border: '1px solid rgb(226 221 211)', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => [v + 'M TL', '']} />
                 <Area type="monotone" dataKey="gelir" stroke="rgb(195 75 75)" strokeWidth={2} fill="url(#g-gelir)" dot={false} />
                 <Area type="monotone" dataKey="gider" stroke="rgb(138 133 125)" strokeWidth={1.5} fill="url(#g-gider)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card className="p-6" delay={240}>
+        <Card className="p-6" delay={200}>
           <Label>Denetim Özeti</Label>
           <div className="mt-4 space-y-3">
             {audit.map(a => (
               <div key={a.area} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <span className={"grid h-5 w-5 place-items-center rounded-full " + (a.status === 'ok' ? 'bg-positive/15 text-positive' : 'bg-warn/15 text-warn')}>
+                  <span className={'grid h-5 w-5 place-items-center rounded-full ' + (a.status === 'ok' ? 'bg-positive/15 text-positive' : 'bg-warn/15 text-warn')}>
                     {a.status === 'ok' ? <Check size={12} /> : <AlertTriangle size={11} />}
                   </span>
                   <span className="text-sm text-ink">{a.area}</span>
@@ -203,23 +172,23 @@ export default function Dashboard() {
             ))}
           </div>
         </Card>
-
-        <Card className="p-6" delay={300}>
-          <Label>30 Günlük Ufuk</Label>
-          <div className="relative mt-5 pl-4">
-            <span className="absolute left-[3px] top-1 bottom-1 w-px bg-line" />
-            <div className="space-y-5">
-              {horizon.map((h, i) => (
-                <div key={i} className="relative">
-                  <span className={"absolute -left-[13px] top-1 h-2 w-2 rounded-full border-2 bg-paper " + (h.tone === 'crimson' ? 'border-crimson' : h.tone === 'warn' ? 'border-warn' : h.tone === 'positive' ? 'border-positive' : 'border-line')} />
-                  <div className="font-mono text-xs text-ink-mute">{h.day}</div>
-                  <div className="mt-0.5 text-sm text-ink">{h.event}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
       </div>
+
+      <Card className="p-6" delay={240}>
+        <Label>30 Günlük Ufuk</Label>
+        <div className="relative mt-5 pl-4">
+          <span className="absolute left-[3px] top-1 bottom-1 w-px bg-line" />
+          <div className="space-y-5">
+            {horizon.map((h, i) => (
+              <div key={i} className="relative">
+                <span className={'absolute -left-[13px] top-1 h-2 w-2 rounded-full border-2 bg-paper ' + (h.tone === 'crimson' ? 'border-crimson' : h.tone === 'warn' ? 'border-warn' : h.tone === 'positive' ? 'border-positive' : 'border-line')} />
+                <div className="font-mono text-xs text-ink-mute">{h.day}</div>
+                <div className="mt-0.5 text-sm text-ink">{h.event}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
 
     </div>
   )

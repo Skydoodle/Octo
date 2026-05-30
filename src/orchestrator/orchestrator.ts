@@ -4,6 +4,19 @@ import { getTotalReceivables, getOverdueReceivables } from '../layers/finance/lo
 import { calculateAPSchedule } from '../layers/finance/logic/apSchedule'
 import { knownObligations } from '../layers/finance/logic/cashProjection'
 
+export type Aciliyet = 'kritik' | 'dikkat' | 'stabil' | 'notr'
+
+export interface BriefingKol {
+  kol: string
+  aciliyet: Aciliyet
+  metin: string
+}
+
+export interface Briefing {
+  ozet: string
+  kollar: BriefingKol[]
+}
+
 export function buildFinanceContext(): string {
   const cash = calculateCashPosition(mockAccounts)
   const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)
@@ -13,72 +26,71 @@ export function buildFinanceContext(): string {
   const apSchedule = calculateAPSchedule(mockInvoices)
 
   const today = new Date()
-
-  const upcomingObligations = knownObligations
-    .map(o => ({
-      ...o,
-      daysUntil: Math.floor(
-        (new Date(o.date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      )
-    }))
+  const upcoming = knownObligations
+    .map(o => ({ ...o, daysUntil: Math.floor((new Date(o.date).getTime() - today.getTime()) / 86400000) }))
     .filter(o => o.daysUntil >= 0 && o.daysUntil <= 30)
     .sort((a, b) => a.daysUntil - b.daysUntil)
 
-  const overdueInvoices = mockInvoices.filter(
-    inv => inv.type === 'sales' && inv.status === 'overdue'
-  )
-
+  const overdueInvoices = mockInvoices.filter(inv => inv.type === 'sales' && inv.status === 'overdue')
   const urgentPayables = apSchedule.filter(item => item.daysUntilDue <= 7)
 
-  const totalUpcoming7Days = upcomingObligations
-    .filter(o => o.daysUntil <= 7)
-    .reduce((s, o) => s + o.amount, 0)
+  return `Bugun: ${today.toLocaleDateString('tr-TR')}
 
-  const totalUpcoming30Days = upcomingObligations
-    .reduce((s, o) => s + o.amount, 0)
+FINANS:
+- Net nakit: ${Math.round(cash.netCash).toLocaleString('tr-TR')} TL
+- Nakit pisti: ${runway} ay
+- Toplam alacak: ${Math.round(totalReceivables).toLocaleString('tr-TR')} TL
+- Gecikmis alacak: ${Math.round(overdueReceivables).toLocaleString('tr-TR')} TL
+- Aylik gider: ${Math.round(monthlyExpenses).toLocaleString('tr-TR')} TL
 
-  const cashAfter7Days = cash.netCash - totalUpcoming7Days
-  const cashAfter30Days = cash.netCash - totalUpcoming30Days
+YAKLASAN YUKUMLULUKLER (30 gun):
+${upcoming.map(o => `- ${o.description}: ${o.amount.toLocaleString('tr-TR')} TL (${o.daysUntil} gun sonra)`).join('\n')}
 
-  const revenueThisMonth = mockTransactions
-    .filter(tx => tx.type === 'income')
-    .reduce((s, tx) => s + tx.amount, 0)
+GECIKMIS FATURALAR:
+${overdueInvoices.map(inv => `- ${inv.contactName}: ${inv.total.toLocaleString('tr-TR')} TL`).join('\n') || 'Yok'}
 
-  return `
-TARİH: ${today.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-
-=== NAKİT POZİSYONU ===
-Mevcut nakit: ${Math.round(cash.netCash).toLocaleString('tr-TR')} TL
-Nakit ömrü: ${runway} ay
-Bu ayki gelir: ${Math.round(revenueThisMonth).toLocaleString('tr-TR')} TL
-Bu ayki gider: ${Math.round(monthlyExpenses).toLocaleString('tr-TR')} TL
-Net kar tahmini: ${Math.round(revenueThisMonth - monthlyExpenses).toLocaleString('tr-TR')} TL
-
-=== ALACAKLAR ===
-Toplam acik alacak: ${Math.round(totalReceivables).toLocaleString('tr-TR')} TL
-Gecikmiş alacak: ${Math.round(overdueReceivables).toLocaleString('tr-TR')} TL
-${overdueInvoices.map(inv => `  - ${inv.contactName}: ${inv.total.toLocaleString('tr-TR')} TL (${Math.floor((today.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24))} gün gecikmiş)`).join('\n')}
-
-=== ACİL ÖDEMELER (7 gün) ===
-${urgentPayables.length > 0
-  ? urgentPayables.map(item => `  - ${item.invoice.contactName}: ${item.invoice.total.toLocaleString('tr-TR')} TL (${item.daysUntilDue} gün kaldi)`).join('\n')
-  : '  Yok'}
-Toplam 7 günluk yukumluluk: ${totalUpcoming7Days.toLocaleString('tr-TR')} TL
-Odemeler sonrasi tahmini nakit: ${Math.round(cashAfter7Days).toLocaleString('tr-TR')} TL
-
-=== YAKLAŞAN YUKUMLULUKLEr (30 gün) ===
-${upcomingObligations.map(o => `  - ${o.description}: ${o.amount.toLocaleString('tr-TR')} TL (${o.daysUntil} gün sonra)`).join('\n')}
-Toplam 30 günluk yukumluluk: ${totalUpcoming30Days.toLocaleString('tr-TR')} TL
-30 gün sonrasi tahmini nakit: ${Math.round(cashAfter30Days).toLocaleString('tr-TR')} TL
-
-=== RİSK ANALİZİ ===
-${cashAfter7Days < 100000 ? 'KRİTİK: 7 gün icinde nakit kritik seviyeye dusuyor' : cashAfter7Days < 200000 ? 'UYARI: 7 gün icinde nakit azaliyor' : 'Nakit pozisyonu saglikli'}
-${overdueReceivables > 50000 ? `KRİTİK: ${Math.round(overdueReceivables).toLocaleString('tr-TR')} TL gecikmiş alacak tahsilat riski olusturuyor` : ''}
-${runway < 3 ? 'KRİTİK: Nakit omru 3 ayin altinda' : runway < 6 ? 'UYARI: Nakit omru 6 ayin altinda' : ''}
+ACIL ODEMELER (7 gun):
+${urgentPayables.map(item => `- ${item.invoice.contactName}: ${item.invoice.total.toLocaleString('tr-TR')} TL (${item.daysUntilDue} gun)`).join('\n') || 'Yok'}
 `
 }
 
-export async function generateBriefing(apiKey: string): Promise<string> {
+const SYSTEM_PROMPT = `Sen Octo'sun, Turk KOBI'leri icin yapay zeka is asistani. Asagidaki finansal verileri okuyup sabah brifingi hazirlayacaksin.
+
+ROLUN: Ayni anda mali musavir, IK analisti ve genel mudur gibi dusunursun. Verileri birlestirip isletme sahibine bu haftanin onceliklerini sunarsin.
+
+YAZIM KURALLARI:
+- Cumleler kisa ve yogun olsun; baglac yerine noktali virgul kullan.
+- Sayisal verileri oldugu gibi koru, birim (TL, %, gun) her zaman belirt.
+- Teknik ama sade dil kullan; KOBI sahibi de anlasin.
+- Em dash, parantez, madde isareti kullanma. Duz cumle yaz.
+- Zaman ifadelerini cumle sonuna tasi ("Persembe gunu ... bekleniyor").
+- Yorum ekleme, sadece veriyi ozetle.
+
+CUMLE FORMATI:
+[Pozisyon/durum cumlesi]; [baglam veya karsilastirma]. [Yaklasan hareket cumlesi.]
+
+ORNEK:
+Girdi: "Nakit 879.400 TL, 4 ay rezerv. Persembe 142.800 TL cikis."
+Cikti: "Nakit pozisyon 879.400 TL; 4 aylik gideri karsilar durumda. Persembe gunu 142.800 TL cikis bekleniyor."
+
+ACILIYET SEVIYELERI:
+- "kritik": hemen aksiyon gerektiren (2-3 gun icinde son tarih, nakit riski)
+- "dikkat": yaklasan ama acil olmayan (1-2 hafta)
+- "stabil": iyi durumda, sadece bilgi
+- "notr": pasif veya beklemede
+
+CIKTI FORMATI: SADECE su JSON yapisinda yanit ver, baska hicbir sey yazma:
+{
+  "ozet": "Tek cumlelik genel ozet; bu hafta neye dikkat edilmeli.",
+  "kollar": [
+    { "kol": "Finans", "aciliyet": "kritik", "metin": "Format kurallarina uygun 1-2 cumle." },
+    { "kol": "Vergi", "aciliyet": "dikkat", "metin": "..." }
+  ]
+}
+
+Sadece veride karsiligi olan kollari ekle. Tahmin veya varsayim yapma.`
+
+export async function generateBriefing(apiKey: string): Promise<Briefing> {
   const context = buildFinanceContext()
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -89,48 +101,25 @@ export async function generateBriefing(apiKey: string): Promise<string> {
     },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 1000,
+      max_tokens: 600,
       temperature: 0.3,
+      response_format: { type: 'json_object' },
       messages: [
-        {
-          role: 'system',
-          content: `Sen Octo'sun — Turk KOBI sahipleri icin yapay zeka is danismanisin.
-Her sabah isletme sahibine o günun finansal durumunu anlatan kisa, net ve eyleme gecilebilir bir brifing hazirlarsin.
-
-PERSONA:
-- 15 yıllık deneyimli bir mali müşavir, IK uzmani ve is danismaninin birlesimi gibi konus
-- Sayilari somut baglamа oturt — rakamlari tek basina verme, ne anlama geldigini soyle
-- Turk is dunyasina ozgu terimleri kullan (SGK, KDV, e-fatura vb.)
-- Ciddi ama eriselebilir bir ton — panik yaratma ama gercekleri saklama
-
-CIKTI FORMATI:
-- 4 ayri paragraf, aralarinda bos satir
-- Her paragraf tek bir konuya odaklanir: once durum, sonra para, sonra risk, sonra eylem
-- Paragraf baslarinda numara veya etiket YOK — sadece cumle
-- Her paragraf bagimsiz okunabilmeli
-
-KURALLAR:
-- Toplam 4-5 cumle, asla daha fazla
-- Her cumle yeni bir paragraf — bosluk birak
-- Merhaba veya selamlama YOK
-- Pasif cumle YOK — aktif, dogrudan konus
-- Gereksiz kelime YOK — her kelime deger tasimali
-- Rakamlari TL cinsinden yaz noktalı binlik ayraciyla ornek 879.400 TL
-- Nakit omru 6 ayin altinda demek yerine mevcut nakitle kac ay faaliyete devam edebileceklerini soyle
-- Turkce is dunyasinda kullanilmayan ceviri terimlerden kacin — dogal Turkce is dili kullan`,
-        },
-        {
-          role: 'user',
-          content: context,
-        }
-      ]
-    })
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: context },
+      ],
+    }),
   })
 
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.status}`)
-  }
+  if (!response.ok) throw new Error(`Groq API error: ${response.status}`)
 
   const data = await response.json()
-  return data.choices[0]?.message?.content || 'Brifing olusturulamadi.'
+  const raw = data.choices[0]?.message?.content || '{}'
+  const cleaned = raw.replace(/```json|```/g, '').trim()
+  const parsed = JSON.parse(cleaned)
+
+  return {
+    ozet: parsed.ozet || 'Brifing olusturulamadi.',
+    kollar: Array.isArray(parsed.kollar) ? parsed.kollar : [],
+  }
 }
