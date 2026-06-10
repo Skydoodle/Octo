@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Modal from '../../../surfaces/dashboard/components/Modal'
+import type { Invoice } from '../types'
 
 interface LineItem {
   id: string
@@ -11,29 +12,10 @@ interface LineItem {
 
 interface Props {
   onClose: () => void
-  onSave: (invoice: any) => void
+  onSave: (invoice: Invoice) => void
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '10px 12px',
-  border: '1px solid rgb(var(--line))',
-  background: 'rgb(var(--surface))',
-  fontSize: '13px',
-  color: 'rgb(var(--ink))',
-  outline: 'none',
-  fontFamily: 'DM Sans, sans-serif',
-}
-
-const labelStyle = {
-  fontFamily: 'monospace',
-  fontSize: '10px',
-  color: 'rgb(var(--ink-mute))',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase' as const,
-  marginBottom: '6px',
-  display: 'block',
-}
+const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-ink-mute'
 
 export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const [type, setType] = useState<'sales' | 'purchase'>('sales')
@@ -42,71 +24,64 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState('')
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: '1', description: '', quantity: 1, unitPrice: 0, vatRate: 20 }
+    { id: '1', description: '', quantity: 1, unitPrice: 0, vatRate: 20 },
   ])
 
-  const addLine = () => {
-    setLineItems(prev => [...prev, {
-      id: Date.now().toString(),
-      description: '', quantity: 1, unitPrice: 0, vatRate: 20
-    }])
-  }
+  const addLine = () =>
+    setLineItems(prev => [...prev, { id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0, vatRate: 20 }])
 
-  const removeLine = (id: string) => {
+  const removeLine = (id: string) =>
     setLineItems(prev => prev.filter(l => l.id !== id))
-  }
 
-  const updateLine = (id: string, field: keyof LineItem, value: string | number) => {
-    setLineItems(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l))
-  }
+  const updateLine = (id: string, field: keyof LineItem, value: string | number) =>
+    setLineItems(prev => prev.map(l => (l.id === id ? { ...l, [field]: value } : l)))
 
   const subtotal = lineItems.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
-  const vatAmount = lineItems.reduce((s, l) => s + l.quantity * l.unitPrice * l.vatRate / 100, 0)
+  const vatAmount = lineItems.reduce((s, l) => s + (l.quantity * l.unitPrice * l.vatRate) / 100, 0)
   const total = subtotal + vatAmount
 
-  const fmt = (n: number) => '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const fmt = (n: number) =>
+    '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-  const handleSave = () => {
-    if (!contactName || !dueDate || lineItems.some(l => !l.description)) return
-    onSave({
+  const buildInvoice = (status: Invoice['status']): Invoice | null => {
+    if (!contactName || !dueDate || lineItems.some(l => !l.description)) return null
+    return {
       id: 'inv' + Date.now(),
       type,
       contactName,
       contactTaxId,
-      issueDate,
-      dueDate,
-      lineItems,
-      subtotal,
+      amount: subtotal,
       vatAmount,
       total,
-      vatRate: 20,
+      vatRate: lineItems[0]?.vatRate ?? 20,
       currency: 'TRY',
-      status: 'draft',
+      issueDate,
+      dueDate,
+      status,
       description: lineItems[0]?.description || '',
-    })
+    }
+  }
+
+  const handleSave = (status: Invoice['status']) => {
+    const inv = buildInvoice(status)
+    if (!inv) return
+    onSave(inv)
     onClose()
   }
 
   return (
     <Modal title="Yeni Fatura" onClose={onClose} width="680px">
-
       {/* Invoice type */}
-      <div style={{ marginBottom: '20px' }}>
-        <label style={labelStyle}>Fatura Tipi</label>
-        <div style={{ display: 'flex', gap: '0' }}>
+      <div className="mb-5">
+        <span className="label mb-1.5 block text-ink-mute">Fatura Tipi</span>
+        <div className="flex">
           {(['sales', 'purchase'] as const).map(t => (
             <button
               key={t}
               onClick={() => setType(t)}
-              style={{
-                flex: 1, padding: '10px',
-                border: '1px solid rgb(var(--line))',
-                borderRight: t === 'sales' ? 'none' : '1px solid rgb(var(--line))',
-                background: type === t ? 'rgb(var(--ink))' : 'rgb(var(--surface))',
-                color: type === t ? 'rgb(var(--surface))' : 'rgb(var(--ink-mute))',
-                fontSize: '13px', fontWeight: type === t ? 500 : 400,
-                cursor: 'pointer',
-              }}
+              className={'flex-1 border border-line px-3 py-2.5 text-sm transition-colors ' +
+                (t === 'sales' ? 'rounded-l border-r-0 ' : 'rounded-r ') +
+                (type === t ? 'bg-ink font-medium text-paper' : 'bg-surface text-ink-mute hover:text-ink')}
             >
               {t === 'sales' ? 'Satış Faturası' : 'Alış Faturası'}
             </button>
@@ -115,20 +90,20 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       </div>
 
       {/* Contact */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      <div className="mb-5 grid grid-cols-2 gap-4">
         <div>
-          <label style={labelStyle}>{type === 'sales' ? 'Müşteri' : 'Tedarikçi'}</label>
+          <span className="label mb-1.5 block text-ink-mute">{type === 'sales' ? 'Müşteri' : 'Tedarikçi'}</span>
           <input
-            style={inputStyle}
+            className={inputCls}
             value={contactName}
             onChange={e => setContactName(e.target.value)}
             placeholder={type === 'sales' ? 'Müşteri adı' : 'Tedarikçi adı'}
           />
         </div>
         <div>
-          <label style={labelStyle}>VKN / TCKN</label>
+          <span className="label mb-1.5 block text-ink-mute">VKN / TCKN</span>
           <input
-            style={inputStyle}
+            className={inputCls}
             value={contactTaxId}
             onChange={e => setContactTaxId(e.target.value)}
             placeholder="Vergi / TC kimlik no"
@@ -137,48 +112,48 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       </div>
 
       {/* Dates */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+      <div className="mb-6 grid grid-cols-2 gap-4">
         <div>
-          <label style={labelStyle}>Fatura Tarihi</label>
-          <input type="date" style={inputStyle} value={issueDate} onChange={e => setIssueDate(e.target.value)}/>
+          <span className="label mb-1.5 block text-ink-mute">Fatura Tarihi</span>
+          <input type="date" className={inputCls} value={issueDate} onChange={e => setIssueDate(e.target.value)} />
         </div>
         <div>
-          <label style={labelStyle}>Vade Tarihi</label>
-          <input type="date" style={inputStyle} value={dueDate} onChange={e => setDueDate(e.target.value)}/>
+          <span className="label mb-1.5 block text-ink-mute">Vade Tarihi</span>
+          <input type="date" className={inputCls} value={dueDate} onChange={e => setDueDate(e.target.value)} />
         </div>
       </div>
 
       {/* Line items */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 80px 100px 80px 32px', gap: '8px', marginBottom: '8px' }}>
-          {['Açıklama', 'Adet', 'Birim Fiyat', 'KDV %', ''].map(h => (
-            <div key={h} style={labelStyle}>{h}</div>
+      <div className="mb-5">
+        <div className="mb-2 grid grid-cols-[3fr_80px_100px_80px_32px] gap-2">
+          {['Açıklama', 'Adet', 'Birim Fiyat', 'KDV %', ''].map((h, i) => (
+            <span key={i} className="label text-ink-mute">{h}</span>
           ))}
         </div>
 
-        {lineItems.map((line, i) => (
-          <div key={line.id} style={{ display: 'grid', gridTemplateColumns: '3fr 80px 100px 80px 32px', gap: '8px', marginBottom: '8px' }}>
+        {lineItems.map(line => (
+          <div key={line.id} className="mb-2 grid grid-cols-[3fr_80px_100px_80px_32px] gap-2">
             <input
-              style={inputStyle}
+              className={inputCls}
               value={line.description}
               onChange={e => updateLine(line.id, 'description', e.target.value)}
               placeholder="Ürün veya hizmet açıklaması"
             />
             <input
               type="number"
-              style={{ ...inputStyle, textAlign: 'right' }}
+              className={inputCls + ' text-right'}
               value={line.quantity}
               onChange={e => updateLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
             />
             <input
               type="number"
-              style={{ ...inputStyle, textAlign: 'right' }}
+              className={inputCls + ' text-right'}
               value={line.unitPrice || ''}
               onChange={e => updateLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
               placeholder="0"
             />
             <select
-              style={{ ...inputStyle, cursor: 'pointer' }}
+              className={inputCls + ' cursor-pointer'}
               value={line.vatRate}
               onChange={e => updateLine(line.id, 'vatRate', parseFloat(e.target.value))}
             >
@@ -190,7 +165,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
             <button
               onClick={() => removeLine(line.id)}
               disabled={lineItems.length === 1}
-              style={{ background: 'none', border: '1px solid rgb(var(--line))', cursor: lineItems.length === 1 ? 'not-allowed' : 'pointer', color: 'rgb(var(--ink-mute))', fontSize: '16px' }}
+              className="rounded border border-line text-base text-ink-mute disabled:cursor-not-allowed disabled:opacity-40"
             >
               ×
             </button>
@@ -199,46 +174,45 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
 
         <button
           onClick={addLine}
-          style={{ padding: '8px 16px', background: 'none', border: '1px dashed rgb(var(--line))', color: 'rgb(var(--ink-mute))', fontSize: '13px', cursor: 'pointer', marginTop: '4px' }}
+          className="mt-1 rounded border border-dashed border-line px-4 py-2 text-sm text-ink-mute hover:text-ink"
         >
           + Satır ekle
         </button>
       </div>
 
       {/* Totals */}
-      <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', padding: '16px 20px', marginBottom: '24px' }}>
-        {[
-          ['Ara Toplam', fmt(subtotal)],
-          ['KDV', fmt(vatAmount)],
-        ].map(([l, v]) => (
-          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ fontSize: '13px', color: 'rgb(var(--ink-mute))' }}>{l}</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgb(var(--ink))' }}>{v}</div>
-          </div>
-        ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid rgb(var(--line))' }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'rgb(var(--ink))' }}>Genel Toplam</div>
-          <div style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 500, color: 'rgb(var(--crimson))' }}>{fmt(total)}</div>
+      <div className="mb-6 rounded-card border border-line bg-surface px-5 py-4">
+        <div className="mb-2 flex justify-between">
+          <span className="text-sm text-ink-mute">Ara Toplam</span>
+          <span className="font-mono text-sm text-ink">{fmt(subtotal)}</span>
+        </div>
+        <div className="mb-2 flex justify-between">
+          <span className="text-sm text-ink-mute">KDV</span>
+          <span className="font-mono text-sm text-ink">{fmt(vatAmount)}</span>
+        </div>
+        <div className="flex justify-between border-t border-line pt-3">
+          <span className="text-sm font-medium text-ink">Genel Toplam</span>
+          <span className="font-mono text-lg font-medium text-crimson">{fmt(total)}</span>
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+      <div className="flex justify-end gap-2.5">
         <button
           onClick={onClose}
-          style={{ padding: '10px 20px', background: 'none', border: '1px solid rgb(var(--line))', color: 'rgb(var(--ink-mute))', fontSize: '13px', cursor: 'pointer' }}
+          className="rounded border border-line px-5 py-2.5 text-sm text-ink-mute hover:text-ink"
         >
           İptal
         </button>
         <button
-          onClick={() => { handleSave() }}
-          style={{ padding: '10px 20px', background: 'rgb(var(--ink))', border: 'none', color: 'rgb(var(--surface))', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          onClick={() => handleSave('draft')}
+          className="rounded bg-ink px-5 py-2.5 text-sm font-medium text-paper transition-opacity hover:opacity-90"
         >
           Taslak Kaydet
         </button>
         <button
-          onClick={handleSave}
-          style={{ padding: '10px 20px', background: 'rgb(var(--crimson))', border: 'none', color: 'rgb(var(--surface))', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+          onClick={() => handleSave('sent')}
+          className="rounded bg-crimson px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
           Faturalandır →
         </button>

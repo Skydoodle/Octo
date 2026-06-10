@@ -2,7 +2,7 @@ import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis,
     CartesianGrid, Tooltip, ResponsiveContainer, Legend
   } from 'recharts'
-  import { mockAccounts, mockInvoices, mockTransactions } from '../mockData'
+  import { useFinanceStore } from '../financeStore'
   import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../logic/cashPosition'
   import { getTotalReceivables, getOverdueReceivables, calculateARAging } from '../logic/arAging'
   import { getTotalPayables, getUpcomingPayables } from '../logic/apSchedule'
@@ -26,6 +26,7 @@ import {
   }))
   
   export default function Overview() {
+  const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = useFinanceStore()
     const cash = calculateCashPosition(mockAccounts)
     const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)
     const runway = calculateRunway(cash.netCash, monthlyExpenses)

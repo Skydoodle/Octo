@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { mockInvoices } from '../mockData'
+import { useFinanceStore } from '../financeStore'
 import { calculateAPSchedule } from '../logic/apSchedule'
 
 const fmt = (n: number) => '₺' + n.toLocaleString('tr-TR')
@@ -21,6 +21,7 @@ const statusColor: Record<string, string> = {
 }
 
 export default function Expenses() {
+  const { invoices: mockInvoices } = useFinanceStore()
   const [filter, setFilter] = useState<'all' | 'sent' | 'paid'>('all')
 
   const purchaseInvoices = mockInvoices.filter(inv => inv.type === 'purchase')

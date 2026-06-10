@@ -2,7 +2,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, ReferenceLine
   } from 'recharts'
-  import { mockAccounts, mockTransactions } from '../mockData'
+  import { useFinanceStore } from '../financeStore'
   import { calculateCashPosition } from '../logic/cashPosition'
   import { calculateCashProjection, knownObligations } from '../logic/cashProjection'
   
@@ -25,6 +25,7 @@ import {
   }
   
   export default function CashFlow() {
+  const { accounts: mockAccounts, transactions: mockTransactions } = useFinanceStore()
     const cash = calculateCashPosition(mockAccounts)
     const projection = calculateCashProjection(cash.netCash, mockTransactions, knownObligations)
     const minBalance = Math.min(...projection.map(d => d.balance))

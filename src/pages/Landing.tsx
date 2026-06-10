@@ -62,13 +62,13 @@ export default function Landing() {
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 md:grid-cols-2 md:pt-24">
         <div>
           <div className="animate-rise">
-            <Label>Türk KOBİ'leri için yapay zeka iş asistanı</Label>
+            <Label>Türk KOBİleri için yapay zeka is asistanı</Label>
           </div>
           <h1 className="animate-rise mt-6 font-display text-5xl leading-tight text-ink md:text-6xl" style={{ animationDelay: '60ms' }}>
             Bir şirketi yönetmek için <span className="italic text-crimson">koca bir ekip</span> gerekmez.
           </h1>
           <p className="animate-rise mt-6 text-lg leading-relaxed text-ink-soft" style={{ animationDelay: '140ms' }}>
-            Mali müşavirinize, avukatınıza, muhasebecinize ayrı ayrı sormak yerine — <span className="text-ink font-medium">tek bir bakış.</span> Octo işinizin her tarafını aynı anda görür ve size ne yapmanız gerektiğini söyler.
+            Mali müşavirinize, avukatınıza, muhasebecinize ayrı ayrı sormak yerine — <span className="text-ink font-medium">tek bir bakış.</span> Octo işinizin her tarafini ayni anda görür ve size ne yapmaniz gerektiğini söyler.
           </p>
 
           <div className="animate-rise mt-8" style={{ animationDelay: '220ms' }}>
@@ -86,18 +86,18 @@ export default function Landing() {
                   onClick={handleSubmit}
                   className="group inline-flex items-center justify-center gap-2 rounded-full bg-crimson px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
                 >
-                  Kurucu 50'ye katıl
+                  Kurucu 50ye katıl
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-3 rounded-full border border-positive/30 bg-positive/10 px-5 py-3">
                 <Check size={18} className="text-positive" />
-                <span className="text-sm text-ink">Teşekkürler — Kurucu 50 arasındaki yerinizi ayırdık.</span>
+                <span className="text-sm text-ink">Tesekkurler — Kurucu 50 arasindaki yerinizi ayırdık.</span>
               </div>
             )}
             <p className="mt-3 text-sm text-ink-mute">
-              İlk 50 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> + Octo'yu birlikte şekillendirelim.
+              İlk 50 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> + ürünü birlikte şekillendirin.
             </p>
           </div>
         </div>
@@ -117,14 +117,14 @@ export default function Landing() {
                 <span className="label text-ink-mute">Günlük Brifing — Pazartesi</span>
               </div>
               <p className="text-sm leading-relaxed text-ink-soft">
-                Bu hafta üç şeye dikkat edin. Nakit pozisyonunuz güçlü ama Perşembe iki ödeme üst üste biniyor.
+                Bu hafta üç şeye dikkat edin. Nakit pozisyonunuz güçlü ama Perşembe iki odeme üst üste biniyor.
               </p>
               <div className="mt-5 space-y-3">
                 <div className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
                   <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-crimson" />
                   <div>
                     <span className="label text-crimson">Finans</span>
-                    <p className="mt-1 text-sm text-ink">Nakit pozisyon 879.400 TL; 4 aylık gideri karşılar durumda. Perşembe günü 142.800 TL çıkış bekleniyor.</p>
+                    <p className="mt-1 text-sm text-ink">Nakit 879.400 TL — 4 ay pist. Perşembe 142.800 TL çıkış.</p>
                   </div>
                 </div>
                 <div className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
@@ -199,7 +199,7 @@ export default function Landing() {
       <section id="nasil">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <Label>Nasıl çalışır</Label>
-          <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight text-ink">Sabah 8'de telefonunuzu açın. Her şeyi bilin.</h2>
+          <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight text-ink">Sabah 8de telefonunuzu açın. Her şeyi bilin.</h2>
           <div className="mt-12 grid gap-8 md:grid-cols-4">
             {[
               ['01', 'Verileriniz Octoda', 'Fatura, odeme, sözleşme, bordro — hepsi tek sistemde.'],
@@ -244,7 +244,7 @@ export default function Landing() {
                 Türkiye için, Türkiyeden.
               </h2>
               <p className="mt-5 text-base leading-relaxed text-ink-soft">
-                3.7 milyon KOBI aynı sorunu yaşıyor: parçalanmış bilgi, geç kalan kararlar, sürekli sürpriz. Octo bu gerçekliği yaşayan bir ekip tarafından, Turk mevzuatına göre sıfırdan inşa ediliyor.
+                3.7 milyon KOBI aynı sorunu yaşıyor: parçalanmış bilgi, geç kalan kararlar, sürekli sürpriz. Octo bu gerçekliği yaşayan bir ekip tarafindan, Turk mevzuatına göre sıfırdan inşa ediliyor.
               </p>
             </div>
             <div className="flex flex-col justify-center gap-6">
@@ -269,7 +269,7 @@ export default function Landing() {
           <Label>Kurucu 50</Label>
           <h2 className="mt-4 font-display text-4xl text-ink">İlk 50 şirket arasına katılın.</h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-soft">
-            Kurucu üyeler ömür boyu %50 indirim alıyor ve ürünü birlikte şekillendiriyor. Şu an erken erişim listesi açılıyor.
+            Kurucu uyeler ömür boyu %50 indirim alıyor ve ürünü birlikte şekillendiriyor. Şu an erken erişim listesi açılıyor.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <div className="h-2 w-48 overflow-hidden rounded-full bg-line">
