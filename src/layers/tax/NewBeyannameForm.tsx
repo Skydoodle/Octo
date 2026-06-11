@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from '../../surfaces/dashboard/components/Modal'
 import { computeDeadline } from './logic/taxLogic'
+import { deriveKdv, type KdvResult } from './logic/kdvEngine'
 import {
   beyannameLabels,
   type Beyanname,
@@ -44,9 +45,21 @@ export default function NewBeyannameForm({ onClose, onSave }: Props) {
   const [vergi, setVergi] = useState(0)
   const [sonTarih, setSonTarih] = useState(computeDeadline('kdv', currentDonem('aylik')))
   const [aciklama, setAciklama] = useState('')
+  const [kdv, setKdv] = useState<KdvResult | null>(null)
+
+  const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
+
+  const hesaplaKdv = () => {
+    const r = deriveKdv(donem)
+    setKdv(r)
+    setMatrah(r.satisMatrah)
+    setVergi(r.odenecekKDV)
+    setSonTarih(computeDeadline('kdv', donem))
+  }
 
   const handleTypeChange = (t: BeyannameType) => {
     setType(t)
+    setKdv(null)
     const d = currentDonem(periodOf[t])
     setDonem(d)
     setSonTarih(computeDeadline(t, d))
@@ -110,6 +123,46 @@ export default function NewBeyannameForm({ onClose, onSave }: Props) {
           />
         </div>
       </div>
+
+      {/* KDV otomatik hesaplama */}
+      {type === 'kdv' && (
+        <div className="mb-5 rounded-card border border-line bg-surface-2 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="label text-ink-mute">Faturalardan KDV Hesapla</span>
+              <p className="mt-1 text-xs text-ink-mute">{donem} dönemindeki satış ve alış faturalarından otomatik hesaplar.</p>
+            </div>
+            <button
+              onClick={hesaplaKdv}
+              className="rounded bg-ink px-4 py-2 text-sm font-medium text-paper transition-opacity hover:opacity-90"
+            >
+              Hesapla
+            </button>
+          </div>
+
+          {kdv && (
+            <div className="mt-4 space-y-2 border-t border-line pt-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-ink-soft">Hesaplanan KDV (satış · {kdv.satisKaynaklar.length} fatura)</span>
+                <span className="font-mono text-ink">{fmt(kdv.hesaplananKDV)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-ink-soft">İndirilecek KDV (alış · {kdv.alisKaynaklar.length} fatura)</span>
+                <span className="font-mono text-ink">- {fmt(kdv.indirilecekKDV)}</span>
+              </div>
+              <div className="flex justify-between border-t border-line pt-2 text-sm">
+                <span className="font-medium text-ink">{kdv.odenecekKDV > 0 ? 'Ödenecek KDV' : 'Sonraki Döneme Devreden'}</span>
+                <span className={'font-mono font-medium ' + (kdv.odenecekKDV > 0 ? 'text-crimson' : 'text-positive')}>
+                  {fmt(kdv.odenecekKDV > 0 ? kdv.odenecekKDV : kdv.devredenSonraki)}
+                </span>
+              </div>
+              {kdv.satisKaynaklar.length === 0 && kdv.alisKaynaklar.length === 0 && (
+                <p className="text-xs text-warn">Bu dönemde fatura bulunamadı. Dönemi kontrol et veya manuel gir.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Amounts */}
       <div className="mb-5 grid grid-cols-2 gap-4">

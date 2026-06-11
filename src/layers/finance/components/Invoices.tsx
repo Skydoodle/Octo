@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFinanceStore, addInvoice } from '../financeStore'
 import type { Invoice } from '../types'
 import NewInvoiceForm from './NewInvoiceForm'
+import ExcelImport from '../../../import/ExcelImport'
 
 const fmt = (n: number) => '₺' + n.toLocaleString('tr-TR')
 
@@ -25,6 +26,7 @@ export default function Invoices() {
   const { invoices } = useFinanceStore()
   const [filter, setFilter] = useState<'all' | 'sent' | 'paid' | 'overdue'>('all')
   const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   const sales = invoices.filter(inv => inv.type === 'sales')
   const filtered = filter === 'all' ? sales : sales.filter(inv => inv.status === filter)
@@ -39,6 +41,7 @@ export default function Invoices() {
       {showForm && (
         <NewInvoiceForm onClose={() => setShowForm(false)} onSave={handleSave} />
       )}
+      {showImport && <ExcelImport onClose={() => setShowImport(false)} />}
 
       {/* Filter bar */}
       <div className="flex items-center justify-between gap-2">
@@ -56,12 +59,20 @@ export default function Invoices() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="rounded bg-crimson px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-        >
-          + Yeni Fatura
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="rounded border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            Excel'den Aktar
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded bg-crimson px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            + Yeni Fatura
+          </button>
+        </div>
       </div>
 
       {/* Invoice table */}
