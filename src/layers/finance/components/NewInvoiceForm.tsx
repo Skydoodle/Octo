@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from '../../../surfaces/dashboard/components/Modal'
 import type { Invoice } from '../types'
+import { tevkifatOranlari, tevkifatKategorileri, type TevkifatOrani } from '../../tax/logic/tevkifat'
 
 interface LineItem {
   id: string
@@ -19,6 +20,8 @@ const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-
 
 export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const [type, setType] = useState<'sales' | 'purchase'>('sales')
+  const [kdvDurumu, setKdvDurumu] = useState<'normal' | 'tevkifat' | 'istisna'>('normal')
+  const [tevkifatOrani, setTevkifatOrani] = useState<TevkifatOrani>('9/10')
   const [contactName, setContactName] = useState('')
   const [contactTaxId, setContactTaxId] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
@@ -59,6 +62,8 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       dueDate,
       status,
       description: lineItems[0]?.description || '',
+      kdvDurumu,
+      tevkifatOrani: kdvDurumu === 'tevkifat' ? tevkifatOrani : undefined,
     }
   }
 
@@ -121,6 +126,45 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
           <span className="label mb-1.5 block text-ink-mute">Vade Tarihi</span>
           <input type="date" className={inputCls} value={dueDate} onChange={e => setDueDate(e.target.value)} />
         </div>
+      </div>
+
+      {/* KDV durumu */}
+      <div className="mb-5">
+        <span className="label mb-1.5 block text-ink-mute">KDV Durumu</span>
+        <div className="flex gap-2">
+          {([['normal','Normal'],['tevkifat','Tevkifatlı'],['istisna','İstisna']] as const).map(([v,l]) => (
+            <button
+              key={v}
+              onClick={() => setKdvDurumu(v)}
+              className={'flex-1 rounded border px-3 py-2 text-sm transition-colors ' +
+                (kdvDurumu === v ? 'border-crimson bg-crimson/5 font-medium text-crimson' : 'border-line text-ink-mute hover:text-ink')}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {kdvDurumu === 'tevkifat' && (
+          <div className="mt-3">
+            <span className="label mb-1.5 block text-ink-mute">Tevkifat Oranı</span>
+            <select
+              className={inputCls + ' cursor-pointer'}
+              value={tevkifatOrani}
+              onChange={e => setTevkifatOrani(e.target.value as TevkifatOrani)}
+            >
+              {tevkifatKategorileri.map(k => (
+                <option key={k.kod} value={k.oran}>{k.ad} ({k.oran})</option>
+              ))}
+              {tevkifatOranlari.map(o => (
+                <option key={o} value={o}>Oran: {o}</option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-ink-mute">Alıcı, KDV’nin {tevkifatOrani} kadarını keser ve 2 No’lu beyanname ile öder.</p>
+          </div>
+        )}
+        {kdvDurumu === 'istisna' && (
+          <p className="mt-2 text-xs text-ink-mute">İstisna işlemde KDV hesaplanmaz; matrah ayrı izlenir (ihracat vb.).</p>
+        )}
       </div>
 
       {/* Line items */}

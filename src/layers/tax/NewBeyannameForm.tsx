@@ -53,7 +53,7 @@ export default function NewBeyannameForm({ onClose, onSave }: Props) {
     const r = deriveKdv(donem)
     setKdv(r)
     setMatrah(r.satisMatrah)
-    setVergi(r.odenecekKDV)
+    setVergi(r.toplamOdenecek ?? r.odenecekKDV)
     setSonTarih(computeDeadline('kdv', donem))
   }
 
@@ -151,11 +151,23 @@ export default function NewBeyannameForm({ onClose, onSave }: Props) {
                 <span className="font-mono text-ink">- {fmt(kdv.indirilecekKDV)}</span>
               </div>
               <div className="flex justify-between border-t border-line pt-2 text-sm">
-                <span className="font-medium text-ink">{kdv.odenecekKDV > 0 ? 'Ödenecek KDV' : 'Sonraki Döneme Devreden'}</span>
+                <span className="font-medium text-ink">{kdv.odenecekKDV > 0 ? 'Ödenecek KDV (1 No\u2019lu)' : 'Sonraki Döneme Devreden'}</span>
                 <span className={'font-mono font-medium ' + (kdv.odenecekKDV > 0 ? 'text-crimson' : 'text-positive')}>
                   {fmt(kdv.odenecekKDV > 0 ? kdv.odenecekKDV : kdv.devredenSonraki)}
                 </span>
               </div>
+              {kdv.sorumluKDV > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-soft">Sorumlu Sıfatıyla KDV (2 No\u2019lu)</span>
+                  <span className="font-mono text-crimson">{fmt(kdv.sorumluKDV)}</span>
+                </div>
+              )}
+              {kdv.istisnaMatrah > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-soft">İstisna Matrah (KDV\u2019siz)</span>
+                  <span className="font-mono text-ink">{fmt(kdv.istisnaMatrah)}</span>
+                </div>
+              )}
               {kdv.satisKaynaklar.length === 0 && kdv.alisKaynaklar.length === 0 && (
                 <p className="text-xs text-warn">Bu dönemde fatura bulunamadı. Dönemi kontrol et veya manuel gir.</p>
               )}

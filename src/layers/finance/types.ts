@@ -20,6 +20,8 @@ export interface Invoice {
   dueDate: string
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
   description: string
+  kdvDurumu?: 'normal' | 'tevkifat' | 'istisna'
+  tevkifatOrani?: '2/10' | '3/10' | '4/10' | '5/10' | '7/10' | '9/10' | '10/10'
 }
 
 export interface Transaction {
