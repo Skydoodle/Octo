@@ -1,9 +1,9 @@
-import { mockAccounts, mockInvoices, mockTransactions } from '../layers/finance/mockData'
+import { getFinanceState } from '../layers/finance/financeStore'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../layers/finance/logic/cashPosition'
 import { getTotalReceivables, getOverdueReceivables } from '../layers/finance/logic/arAging'
 import { calculateAPSchedule } from '../layers/finance/logic/apSchedule'
 import { knownObligations } from '../layers/finance/logic/cashProjection'
-import { mockBeyannameler, mockCompliance } from '../layers/tax/mockData'
+import { getTaxState } from '../layers/tax/taxStore'
 import { getUpcomingObligations, getTotalTaxOwed, calculateComplianceScore, detectDeadlineClusters } from '../layers/tax/logic/taxLogic'
 
 export type Aciliyet = 'kritik' | 'dikkat' | 'stabil' | 'notr'
@@ -20,6 +20,8 @@ export interface Briefing {
 }
 
 export function buildContext(): string {
+  const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = getFinanceState()
+  const { beyannameler: mockBeyannameler, compliance: mockCompliance } = getTaxState()
   // FINANS
   const cash = calculateCashPosition(mockAccounts)
   const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)

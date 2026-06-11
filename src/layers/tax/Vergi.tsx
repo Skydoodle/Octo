@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Card, Label } from '../../shared/utils/ui'
 import { Check, AlertTriangle, AlertCircle } from 'lucide-react'
-import { mockBeyannameler, mockCompliance } from './mockData'
+import { useTaxStore, addBeyanname } from './taxStore'
+import NewBeyannameForm from './NewBeyannameForm'
 import {
   getUpcomingObligations, getTotalTaxOwed, getOverdueCount,
   calculateComplianceScore, daysUntil, detectDeadlineClusters,
@@ -22,6 +23,8 @@ type Tab = 'beyannameler' | 'takvim' | 'uyumluluk'
 
 export default function Vergi() {
   const [tab, setTab] = useState<Tab>('beyannameler')
+  const [showForm, setShowForm] = useState(false)
+  const { beyannameler: mockBeyannameler, compliance: mockCompliance } = useTaxStore()
 
   const totalOwed = getTotalTaxOwed(mockBeyannameler)
   const upcoming = getUpcomingObligations(mockBeyannameler, 30)
@@ -37,10 +40,22 @@ export default function Vergi() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <span className="label text-crimson">Katman 02</span>
-        <h1 className="mt-2 font-display text-4xl text-ink">Vergi</h1>
+      <div className="flex items-end justify-between">
+        <div>
+          <span className="label text-crimson">Katman 02</span>
+          <h1 className="mt-2 font-display text-4xl text-ink">Vergi</h1>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="rounded bg-crimson px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        >
+          + Yeni Beyanname
+        </button>
       </div>
+
+      {showForm && (
+        <NewBeyannameForm onClose={() => setShowForm(false)} onSave={addBeyanname} />
+      )}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

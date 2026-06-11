@@ -4,7 +4,9 @@ import { Card, Label } from '../../shared/utils/ui'
 import { useBriefing } from '../../orchestrator/useBriefing'
 import type { Aciliyet } from '../../orchestrator/orchestrator'
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
-import { mockInvoices, mockAccounts, mockTransactions } from '../../layers/finance/mockData'
+import { useFinanceStore } from '../../layers/finance/financeStore'
+import { runAllDetectors } from '../../shared/insights/detectors'
+import InsightCard from './components/InsightCard'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../../layers/finance/logic/cashPosition'
 import { getTotalReceivables, getOverdueReceivables } from '../../layers/finance/logic/arAging'
 import { getTotalPayables, getUpcomingPayables } from '../../layers/finance/logic/apSchedule'
@@ -45,6 +47,8 @@ const horizon = [
 export default function Dashboard() {
   const navigate = useNavigate()
   const { briefing, loading, regenerate } = useBriefing()
+  const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = useFinanceStore()
+  const insights = runAllDetectors()
 
   const cash = calculateCashPosition(mockAccounts)
   const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)
@@ -105,6 +109,13 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {insights.length > 0 && (
+        <div className="space-y-3">
+          <Label>Denetlenebilir İçgörüler</Label>
+          {insights.map(ins => <InsightCard key={ins.id} insight={ins} />)}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((k, i) => {
