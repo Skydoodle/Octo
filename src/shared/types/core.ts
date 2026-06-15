@@ -38,48 +38,6 @@ export interface OctoInvoice {
   id: string;
   companyId: string;
   type: 'sales' | 'purchase';
-  cont
-cat > src/shared/types/core.ts << 'EOF'
-// ── OCTO CORE SCHEMA ─────────────────────────────────────────────
-// Frozen on Day 1. All layers write to these types.
-// Do not change without both founders agreeing.
-
-export type SectorCode =
-  | 'food_beverage'
-  | 'retail'
-  | 'manufacturing'
-  | 'professional_services'
-  | 'construction'
-  | 'import_export'
-  | 'other';
-
-export type Currency = 'TRY' | 'USD' | 'EUR';
-
-export type LayerId =
-  | 'finance'
-  | 'tax'
-  | 'legal'
-  | 'hr'
-  | 'operations'
-  | 'stock'
-  | 'sales'
-  | 'audit'
-  | 'compliance';
-
-export interface OctoCompany {
-  id: string;
-  name: string;
-  taxId: string;
-  taxOffice: string;
-  sector: SectorCode;
-  employeeCount: number;
-  createdAt: Date;
-}
-
-export interface OctoInvoice {
-  id: string;
-  companyId: string;
-  type: 'sales' | 'purchase';
   contactId: string;
   lineItems: LineItem[];
   subtotal: number;

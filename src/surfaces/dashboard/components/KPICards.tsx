@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Tooltip from './Tooltip'
-import { mockInvoices, mockAccounts, mockTransactions } from '../../../layers/finance/mockData'
+import { useFinanceStore } from '../../../layers/finance/financeStore'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../../../layers/finance/logic/cashPosition'
 import { getTotalReceivables, getOverdueReceivables } from '../../../layers/finance/logic/arAging'
 import { getTotalPayables, getUpcomingPayables } from '../../../layers/finance/logic/apSchedule'
@@ -75,6 +75,7 @@ function KPICard({
 
 export default function KPICards() {
   const navigate = useNavigate()
+  const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = useFinanceStore()
   const cash = calculateCashPosition(mockAccounts)
   const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)
   const runway = calculateRunway(cash.netCash, monthlyExpenses)

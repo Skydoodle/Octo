@@ -3,12 +3,16 @@ import Overview from './components/Overview'
 import Invoices from './components/Invoices'
 import Expenses from './components/Expenses'
 import CashFlow from './components/CashFlow'
+import Muhasebe from './components/Muhasebe'
+import Cariler from './components/Cariler'
 
 const tabs = [
   { id: 'overview', label: 'Genel Bakış' },
   { id: 'invoices', label: 'Faturalar' },
+  { id: 'cariler', label: 'Cariler' },
   { id: 'expenses', label: 'Giderler' },
   { id: 'cashflow', label: 'Nakit Akışı' },
+  { id: 'muhasebe', label: 'Muhasebe' },
 ]
 
 export default function Finance() {
@@ -50,8 +54,10 @@ export default function Finance() {
 
       {activeTab === 'overview' && <Overview />}
       {activeTab === 'invoices' && <Invoices />}
+      {activeTab === 'cariler' && <Cariler />}
       {activeTab === 'expenses' && <Expenses />}
       {activeTab === 'cashflow' && <CashFlow />}
+      {activeTab === 'muhasebe' && <Muhasebe />}
     </div>
   )
 }

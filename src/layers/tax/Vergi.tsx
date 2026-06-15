@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Card, Label } from '../../shared/utils/ui'
+import EmptyState from '../../shared/utils/EmptyState'
 import { Check, AlertTriangle, AlertCircle } from 'lucide-react'
 import { useTaxStore, addBeyanname } from './taxStore'
 import NewBeyannameForm from './NewBeyannameForm'
+import ExcelImportVergi from '../../import/ExcelImportVergi'
 import {
   getUpcomingObligations, getTotalTaxOwed, getOverdueCount,
   calculateComplianceScore, daysUntil, detectDeadlineClusters,
@@ -24,6 +26,7 @@ type Tab = 'beyannameler' | 'takvim' | 'uyumluluk'
 export default function Vergi() {
   const [tab, setTab] = useState<Tab>('beyannameler')
   const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const { beyannameler: mockBeyannameler, compliance: mockCompliance } = useTaxStore()
 
   const totalOwed = getTotalTaxOwed(mockBeyannameler)
@@ -45,17 +48,26 @@ export default function Vergi() {
           <span className="label text-crimson">Katman 02</span>
           <h1 className="mt-2 font-display text-4xl text-ink">Vergi</h1>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="rounded bg-crimson px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-        >
-          + Yeni Beyanname
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="rounded border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-crimson hover:text-crimson"
+          >
+            Excel'den İçe Aktar
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded bg-crimson px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            + Yeni Beyanname
+          </button>
+        </div>
       </div>
 
       {showForm && (
         <NewBeyannameForm onClose={() => setShowForm(false)} onSave={addBeyanname} />
       )}
+      {showImport && <ExcelImportVergi onClose={() => setShowImport(false)} />}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -120,7 +132,9 @@ export default function Vergi() {
               <span key={h} className="label text-ink-mute">{h}</span>
             ))}
           </div>
-          {mockBeyannameler.map((b, i) => {
+          {mockBeyannameler.length === 0 ? (
+            <EmptyState title="Beyanname yok" hint="Beyanname eklendiğinde burada listelenir." />
+          ) : mockBeyannameler.map((b, i) => {
             const du = daysUntil(b.sonTarih)
             const isUrgent = du >= 0 && du <= 7 && b.status !== 'odendi' && b.status !== 'gonderildi'
             return (
@@ -150,6 +164,9 @@ export default function Vergi() {
       {tab === 'takvim' && (
         <Card className="p-6" delay={0}>
           <Label>Yaklaşan Vergi Takvimi</Label>
+          {upcoming.length === 0 ? (
+            <EmptyState title="Yaklaşan beyanname yok" hint="30 gün içinde son tarihi olan beyanname bulunmuyor." />
+          ) : (
           <div className="relative mt-6 pl-4">
             <span className="absolute left-[3px] top-1 bottom-1 w-px bg-line" />
             <div className="space-y-6">
@@ -170,6 +187,7 @@ export default function Vergi() {
               })}
             </div>
           </div>
+          )}
         </Card>
       )}
 
@@ -178,6 +196,9 @@ export default function Vergi() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <Card className="p-6 lg:col-span-2" delay={0}>
             <Label>Uyumluluk Detayı</Label>
+            {mockCompliance.length === 0 ? (
+              <EmptyState title="Uyumluluk verisi yok" hint="Uyumluluk alanları tanımlandığında burada görünür." />
+            ) : (
             <div className="mt-5 space-y-4">
               {mockCompliance.map(c => (
                 <div key={c.alan} className="flex items-center justify-between gap-3">
@@ -195,6 +216,7 @@ export default function Vergi() {
                 </div>
               ))}
             </div>
+            )}
           </Card>
 
           <Card className="flex flex-col items-center justify-center p-6" delay={80}>

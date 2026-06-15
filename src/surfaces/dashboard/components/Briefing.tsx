@@ -65,7 +65,27 @@ export default function Briefing() {
         transition: 'color 0.3s',
         fontStyle: loading ? 'italic' : 'normal',
       }}>
-        {loading ? 'Yapay zeka brifing hazırlıyor...' : error ? 'Brifing yüklenemedi.' : briefing}
+        {loading
+          ? 'Yapay zeka brifing hazırlıyor...'
+          : error
+          ? 'Brifing yüklenemedi.'
+          : (
+            <>
+              {briefing.ozet && <div style={{ marginBottom: briefing.kollar.length ? '14px' : 0 }}>{briefing.ozet}</div>}
+              {briefing.kollar.map((k, i) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'baseline' }}>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em',
+                    color: k.aciliyet === 'kritik' ? '#C34B4B' : k.aciliyet === 'dikkat' ? '#C9883A' : 'rgba(255,255,255,0.4)',
+                    minWidth: '64px', flexShrink: 0, paddingTop: '2px',
+                  }}>
+                    {k.kol}
+                  </span>
+                  <span>{k.metin}</span>
+                </div>
+              ))}
+            </>
+          )}
       </div>
     </div>
   )

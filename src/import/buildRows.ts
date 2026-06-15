@@ -104,6 +104,18 @@ export function buildRows(
       else if (/(satis|satış|sat|sale|gelir|musteri)/.test(typeStr)) type = 'sales'
     }
 
+    // Parse status: paid invoices will auto-settle on import so cash + a
+    // transaction appear, lighting up the whole dashboard from one file.
+    let status: Invoice['status'] = 'sent'
+    const statusStr = str(r, 'status').toLocaleLowerCase('tr-TR')
+    if (statusStr) {
+      if (/(odendi|ödendi|paid|tahsil|kapali|kapandı)/.test(statusStr)) status = 'paid'
+      else if (/(taslak|draft)/.test(statusStr)) status = 'draft'
+      else if (/(gecikti|gecikmis|overdue|vadesi)/.test(statusStr)) status = 'overdue'
+      else if (/(iptal|cancel)/.test(statusStr)) status = 'cancelled'
+      else if (/(gonderildi|gönderildi|sent|beyan)/.test(statusStr)) status = 'sent'
+    }
+
     const raw: Record<string, string> = {
       contactName,
       issueDate: issueDate ?? '',
@@ -111,6 +123,7 @@ export function buildRows(
       vatAmount: finalVat.toLocaleString('tr-TR', { maximumFractionDigits: 2 }),
       total: finalTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 }),
       type,
+      status,
     }
 
     const invoice: Invoice | null = errors.length === 0 ? {
@@ -125,7 +138,7 @@ export function buildRows(
       currency: 'TRY',
       issueDate: issueDate ?? new Date().toISOString().slice(0, 10),
       dueDate: dueDate ?? issueDate ?? new Date().toISOString().slice(0, 10),
-      status: 'sent',
+      status,
       description: str(r, 'description'),
     } : null
 

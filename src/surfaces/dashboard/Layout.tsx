@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Outlet, NavLink, Link } from 'react-router-dom'
 import {
   LayoutGrid, Wallet, Receipt, Scale,
-  Users, Boxes, ShieldCheck, Mic, ExternalLink
+  Users, Boxes, ShieldCheck, Mic, ExternalLink, Database
 } from 'lucide-react'
 import { Wordmark, ThemeToggle } from '../../shared/utils/ui'
+import DataManager from './components/DataManager'
+import { DropAnywhere } from './components/UniversalImport'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutGrid, label: 'Dashboard', end: true },
@@ -17,8 +20,11 @@ const navItems = [
 ]
 
 export default function Layout() {
+  const [showData, setShowData] = useState(false)
   return (
     <div className="flex min-h-screen bg-paper">
+      <DropAnywhere />
+      {showData && <DataManager onClose={() => setShowData(false)} />}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface/60 px-5 py-6 backdrop-blur md:flex">
         <div className="mb-8 flex items-center justify-between px-2">
           <Link to="/dashboard" className="flex items-baseline gap-2">
@@ -53,6 +59,13 @@ export default function Layout() {
         </nav>
 
         <div className="mt-4 border-t border-line pt-4">
+          <button
+            onClick={() => setShowData(true)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Database size={17} className="shrink-0" />
+            <span>Verileri Yönet</span>
+          </button>
           <Link
             to="/"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"

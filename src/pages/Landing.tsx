@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { enableDemo, disableDemo } from '../shared/config'
 import {
   ArrowRight, Wallet, Receipt, Scale, Users, Boxes,
   ShieldCheck, BarChart3, Gavel, Check, Sparkles,
@@ -29,6 +30,19 @@ export default function Landing() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const navigate = useNavigate()
+
+  // "Demoyu gör": load the seeded demo dataset, then open the dashboard.
+  const openDemo = () => {
+    enableDemo()
+    navigate('/dashboard')
+  }
+
+  // "Boş başla": clear to an empty book and open the dashboard (real product).
+  const startEmpty = () => {
+    disableDemo()
+    navigate('/dashboard')
+  }
 
   const handleSubmit = () => {
     if (!email || !email.includes('@')) return
@@ -51,9 +65,12 @@ export default function Landing() {
             <a href="#kollar" className="hidden text-sm text-ink-soft hover:text-ink sm:inline transition-colors">Katmanlar</a>
             <a href="#sss" className="hidden text-sm text-ink-soft hover:text-ink sm:inline transition-colors">SSS</a>
             <ThemeToggle />
-            <Link to="/dashboard" className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-crimson hover:text-crimson">
+            <button onClick={startEmpty} className="rounded-full px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink">
+              Boş başla
+            </button>
+            <button onClick={openDemo} className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-crimson hover:text-crimson">
               Demoyu gör
-            </Link>
+            </button>
           </nav>
         </div>
       </header>
@@ -310,9 +327,14 @@ export default function Landing() {
           <p className="font-mono text-sm uppercase tracking-widest text-crimson">Koca bir arka ofis. Tek bir akıl.</p>
           <h2 className="mt-6 font-display text-5xl italic text-paper">İşiniz düşünmeye başlasın.</h2>
           <p className="mt-4 text-sm text-paper/50">İlk 50 şirkete ömür boyu %50 indirim. KVKK uyumlu. Kurulum gerektirmez.</p>
-          <Link to="/dashboard" className="mt-8 inline-flex items-center gap-2 rounded-full bg-crimson px-7 py-3.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5">
-            Demoyu görün <ArrowRight size={16} />
-          </Link>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <button onClick={openDemo} className="inline-flex items-center gap-2 rounded-full bg-crimson px-7 py-3.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5">
+              Demoyu görün <ArrowRight size={16} />
+            </button>
+            <button onClick={startEmpty} className="text-sm text-paper/50 underline-offset-4 transition-colors hover:text-paper/80 hover:underline">
+              Boş başla
+            </button>
+          </div>
         </div>
       </section>
 

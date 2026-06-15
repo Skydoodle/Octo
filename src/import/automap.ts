@@ -16,6 +16,7 @@ export type InvoiceField =
   | 'total'       // KDV dahil
   | 'description'
   | 'type'        // sales / purchase
+  | 'status'      // durum (ödendi / gönderildi / ...)
   | 'ignore'
 
 export const fieldLabels: Record<InvoiceField, string> = {
@@ -29,6 +30,7 @@ export const fieldLabels: Record<InvoiceField, string> = {
   total: 'Genel Toplam',
   description: 'Açıklama',
   type: 'Tür (Satış/Alış)',
+  status: 'Durum',
   ignore: '— Kullanma —',
 }
 
@@ -44,6 +46,7 @@ const headerHints: { field: InvoiceField; keys: string[] }[] = [
   { field: 'total', keys: ['geneltoplam', 'toplam', 'kdvdahil', 'tutartoplam', 'odenecek'] },
   { field: 'description', keys: ['aciklama', 'not', 'detay', 'urun', 'hizmet', 'kalem'] },
   { field: 'type', keys: ['tur', 'tip', 'faturatipi', 'islemturu'] },
+  { field: 'status', keys: ['durum', 'statu', 'odeme', 'odendi', 'tahsilat'] },
 ]
 
 export interface ParsedSheet {

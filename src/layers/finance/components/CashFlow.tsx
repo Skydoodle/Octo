@@ -2,9 +2,11 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, ReferenceLine
   } from 'recharts'
+  import { useState } from 'react'
   import { useFinanceStore } from '../financeStore'
   import { calculateCashPosition } from '../logic/cashPosition'
-  import { calculateCashProjection, knownObligations } from '../logic/cashProjection'
+  import { calculateCashProjection, getKnownObligations } from '../logic/cashProjection'
+  import BankStatementImport from '../../../import/BankStatementImport'
   
   const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
   const fmtK = (n: number) => n >= 1000000 ? '₺' + (n/1000000).toFixed(1) + 'M' : '₺' + (n/1000).toFixed(0) + 'K'
@@ -26,6 +28,8 @@ import {
   
   export default function CashFlow() {
   const { accounts: mockAccounts, transactions: mockTransactions } = useFinanceStore()
+    const [showEkstre, setShowEkstre] = useState(false)
+    const knownObligations = getKnownObligations()
     const cash = calculateCashPosition(mockAccounts)
     const projection = calculateCashProjection(cash.netCash, mockTransactions, knownObligations)
     const minBalance = Math.min(...projection.map(d => d.balance))
@@ -49,6 +53,17 @@ import {
   
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        {/* Ekstre import */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setShowEkstre(true)}
+            style={{ borderRadius: '8px', border: '1px solid rgb(var(--line))', padding: '8px 16px', fontSize: '13px', fontWeight: 500, color: 'rgb(var(--ink-soft))', background: 'transparent', cursor: 'pointer' }}
+          >
+            Banka Ekstresi İçe Aktar
+          </button>
+        </div>
+        {showEkstre && <BankStatementImport onClose={() => setShowEkstre(false)} />}
   
         {/* Summary cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>

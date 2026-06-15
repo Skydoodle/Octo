@@ -43,6 +43,7 @@ export function getOverdueCount(beyannameler: Beyanname[]): number {
 // Composite compliance score (weighted)
 export function calculateComplianceScore(items: ComplianceItem[]): number {
   const totalWeight = items.reduce((s, i) => s + i.agirlik, 0)
+  if (totalWeight === 0) return 0 // no compliance data -> 0, never NaN
   const earned = items.reduce((s, i) => {
     const factor = i.durum === 'tamam' ? 1 : i.durum === 'risk' ? 0.5 : 0
     return s + i.agirlik * factor

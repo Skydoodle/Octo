@@ -3,27 +3,15 @@ import {
     CartesianGrid, Tooltip, ResponsiveContainer, Legend
   } from 'recharts'
   import { useFinanceStore } from '../financeStore'
+  import EmptyState from '../../../shared/utils/EmptyState'
   import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../logic/cashPosition'
   import { getTotalReceivables, getOverdueReceivables, calculateARAging } from '../logic/arAging'
   import { getTotalPayables, getUpcomingPayables } from '../logic/apSchedule'
+  import { monthlyTrend as buildTrend, expenseByCategory, financialRatios, momDelta, sparkFromTrend } from '../logic/metrics'
   
   const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
   const fmtK = (n: number) => n >= 1000000 ? '₺' + (n/1000000).toFixed(1) + 'M' : n >= 1000 ? '₺' + (n/1000).toFixed(0) + 'K' : '₺' + n
-  
-  // Mock 6-month trend data
-  const monthlyTrend = [
-    { month: 'Ara', gelir: 180000, gider: 145000, kar: 35000 },
-    { month: 'Oca', gelir: 210000, gider: 162000, kar: 48000 },
-    { month: 'Şub', gelir: 195000, gider: 158000, kar: 37000 },
-    { month: 'Mar', gelir: 240000, gider: 171000, kar: 69000 },
-    { month: 'Nis', gelir: 228000, gider: 168000, kar: 60000 },
-    { month: 'May', gelir: 285000, gider: 212000, kar: 73000 },
-  ]
-  
-  // Mock sparkline data
-  const sparkData = (up: boolean) => Array.from({length: 8}, (_, i) => ({
-    v: 50 + (up ? i * 6 : -i * 4) + Math.random() * 20
-  }))
+  const fmtDelta = (d: number | null) => d === null ? '—' : (d >= 0 ? '+' : '') + d.toFixed(1) + '%'
   
   export default function Overview() {
   const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = useFinanceStore()
@@ -41,29 +29,25 @@ import {
       alacak: Math.round(b.total / 1000),
     }))
   
-    // Expense breakdown
-    const expenseCategories = [
-      { label: 'Personel', amount: 142800, pct: 67 },
-      { label: 'Kira', amount: 54000, pct: 25 },
-      { label: 'Teknoloji', amount: 10200, pct: 5 },
-      { label: 'Genel Gider', amount: 5040, pct: 2 },
-    ]
+    // ---- All store-derived now (no hardcoded figures) ----
+    const monthlyTrend = buildTrend(mockTransactions, 6)
+    const expenseCategories = expenseByCategory(mockTransactions)
+    const ratios = financialRatios(mockAccounts, mockInvoices)
   
-    // Financial ratios
-    const ratios = [
-      { label: 'Cari Oran', value: '2.1:1', target: '2.0 veya üzeri', status: 'good' },
-      { label: 'Asit-Test Oranı', value: '1.4:1', target: '1.0 veya üzeri', status: 'good' },
-      { label: 'Borç/Özkaynak', value: '0.6:1', target: '0.5 veya altı', status: 'warn' },
-    ]
+    // Month-over-month deltas from the real trend (last two months).
+    const last = monthlyTrend[monthlyTrend.length - 1]
+    const prev = monthlyTrend[monthlyTrend.length - 2]
+    const revenueDelta = momDelta(last?.gelir ?? 0, prev?.gelir ?? 0)
+    const expenseDelta = momDelta(last?.gider ?? 0, prev?.gider ?? 0)
   
-    const ratioColor = { good: 'rgb(var(--positive))', warn: 'rgb(var(--warn))', bad: 'rgb(var(--crimson))' }
-    const ratioIcon = { good: '◆', warn: '!', bad: '✗' }
+    const ratioColor = { good: 'rgb(var(--positive))', warn: 'rgb(var(--warn))', bad: 'rgb(var(--crimson))', unknown: 'rgb(var(--ink-mute))' }
+    const ratioIcon = { good: '◆', warn: '!', bad: '✗', unknown: '–' }
   
     const kpis = [
-      { label: 'Net Nakit', value: fmt(cash.netCash), sub:`nakit ömrü ${runway} ay`, delta: '+8.2%', up: true, spark: sparkData(true) },
-      { label: 'Toplam Alacak', value: fmt(totalReceivables), sub: `${fmt(overdueReceivables)} gecikmiş`, delta: '+12.4%', up: true, spark: sparkData(true) },
-      { label: 'Toplam Borç', value: fmt(totalPayables), sub: `${fmt(upcomingPayables)} 30 günde`, delta: '-3.1%', up: false, spark: sparkData(false) },
-      { label: 'Aylık Gider', value: fmt(monthlyExpenses), sub: 'bu ay', delta: '+5.8%', up: false, spark: sparkData(false) },
+      { label: 'Net Nakit', value: fmt(cash.netCash), sub:`nakit ömrü ${runway} ay`, delta: fmtDelta(revenueDelta), up: (revenueDelta ?? 0) >= 0, spark: sparkFromTrend(monthlyTrend, 'kar') },
+      { label: 'Toplam Alacak', value: fmt(totalReceivables), sub: `${fmt(overdueReceivables)} gecikmiş`, delta: '', up: true, spark: sparkFromTrend(monthlyTrend, 'gelir') },
+      { label: 'Toplam Borç', value: fmt(totalPayables), sub: `${fmt(upcomingPayables)} 30 günde`, delta: '', up: false, spark: sparkFromTrend(monthlyTrend, 'gider') },
+      { label: 'Aylık Gider', value: fmt(monthlyExpenses), sub: 'bu ay', delta: fmtDelta(expenseDelta), up: (expenseDelta ?? 0) < 0, spark: sparkFromTrend(monthlyTrend, 'gider') },
     ]
   
     return (
@@ -78,9 +62,11 @@ import {
                 <div>
                   <div style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 500, color: 'rgb(var(--ink))', marginBottom: '4px' }}>{kpi.value}</div>
                   <div style={{ fontSize: '11px', color: 'rgb(var(--ink-mute))', marginBottom: '6px' }}>{kpi.sub}</div>
-                  <div style={{ fontSize: '11px', fontWeight: 500, color: kpi.up ? 'rgb(var(--positive))' : 'rgb(var(--crimson))' }}>
-                    {kpi.up ? '▲' : '▼'} {kpi.delta} geçen ay
-                  </div>
+                  {kpi.delta && (
+                    <div style={{ fontSize: '11px', fontWeight: 500, color: kpi.up ? 'rgb(var(--positive))' : 'rgb(var(--crimson))' }}>
+                      {kpi.up ? '▲' : '▼'} {kpi.delta} geçen ay
+                    </div>
+                  )}
                 </div>
                 <div style={{ width: '72px', height: '36px' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -122,7 +108,7 @@ import {
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={v => fmtK(v)}/>
                 <Tooltip
-                  formatter={(value: number, name: string) => [fmt(value), name === 'gelir' ? 'Gelir' : name === 'gider' ? 'Gider' : 'Kâr']}
+                  formatter={(value, name) => [fmt(Number(value ?? 0)), name === 'gelir' ? 'Gelir' : name === 'gider' ? 'Gider' : 'Kâr']}
                   contentStyle={{ background: 'rgb(var(--ink))', border: 'none', borderRadius: '4px', fontSize: '12px' }}
                   labelStyle={{ color: 'rgb(var(--ink-mute))', fontFamily: 'monospace', fontSize: '11px' }}
                   itemStyle={{ color: 'rgb(var(--surface))' }}
@@ -148,6 +134,7 @@ import {
                       fontSize: '10px', color: 'rgb(var(--surface))', fontWeight: 700,
                       borderRadius: r.status === 'good' ? '0' : '4px',
                       transform: r.status === 'good' ? 'rotate(45deg)' : 'none',
+                      opacity: r.status === 'unknown' ? 0.5 : 1,
                     }}>
                       <span style={{ transform: r.status === 'good' ? 'rotate(-45deg)' : 'none', fontSize: '8px' }}>
                         {ratioIcon[r.status as keyof typeof ratioIcon]}
@@ -175,7 +162,7 @@ import {
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }} axisLine={false} tickLine={false}/>
                 <Tooltip
-                  formatter={(v: number) => [`₺${v}K`]}
+                  formatter={(v) => [`₺${Number(v ?? 0)}K`]}
                   contentStyle={{ background: 'rgb(var(--ink))', border: 'none', borderRadius: '4px', fontSize: '12px' }}
                   itemStyle={{ color: 'rgb(var(--surface))' }}
                 />
@@ -220,6 +207,9 @@ import {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid rgb(var(--line))' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Banka Hesapları</div>
             </div>
+            {mockAccounts.length === 0 ? (
+              <EmptyState compact title="Banka hesabı yok" hint="Hesap eklendiğinde bakiyeler burada görünür." />
+            ) : (<>
             {mockAccounts.map((acc, i) => (
               <div key={acc.id} style={{ padding: '14px 20px', borderBottom: i < mockAccounts.length - 1 ? '1px solid rgb(var(--line))' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -238,13 +228,16 @@ import {
               <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Toplam (TRY)</div>
               <div style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 500, color: 'rgb(var(--ink))' }}>{fmt(cash.netCash)}</div>
             </div>
+            </>)}
           </div>
   
           <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid rgb(var(--line))' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Son İşlemler</div>
             </div>
-            {mockTransactions.slice(0, 5).map((tx, i) => (
+            {mockTransactions.length === 0 ? (
+              <EmptyState compact title="İşlem yok" hint="Fatura tahsil edildiğinde işlemler burada listelenir." />
+            ) : mockTransactions.slice(0, 5).map((tx, i) => (
               <div key={tx.id} style={{ padding: '12px 20px', borderBottom: i < 4 ? '1px solid rgb(var(--line))' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: tx.type === 'income' ? 'rgb(var(--positive))' : 'rgb(var(--crimson))', flexShrink: 0 }}/>

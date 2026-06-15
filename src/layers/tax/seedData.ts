@@ -11,7 +11,7 @@ import type { Beyanname, ComplianceItem } from './types'
 // Damga: with muhtasar
 // Kurumlar: end of April (annual)
 
-export const mockBeyannameler: Beyanname[] = [
+export const seedBeyannameler: Beyanname[] = [
   {
     id: 'kdv-2026-05',
     type: 'kdv',
@@ -105,7 +105,7 @@ export const mockBeyannameler: Beyanname[] = [
   },
 ]
 
-export const mockCompliance: ComplianceItem[] = [
+export const seedCompliance: ComplianceItem[] = [
   { alan: 'KDV beyannameleri', durum: 'tamam', not: 'Tüm dönemler güncel', agirlik: 25 },
   { alan: 'Muhtasar beyanname', durum: 'risk', not: 'Mayıs dönemi taslak halinde', agirlik: 20 },
   { alan: 'SGK bildirgeleri', durum: 'tamam', not: 'Zamanında gönderildi', agirlik: 20 },

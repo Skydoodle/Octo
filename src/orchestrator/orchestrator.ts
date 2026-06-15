@@ -2,7 +2,7 @@ import { getFinanceState } from '../layers/finance/financeStore'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../layers/finance/logic/cashPosition'
 import { getTotalReceivables, getOverdueReceivables } from '../layers/finance/logic/arAging'
 import { calculateAPSchedule } from '../layers/finance/logic/apSchedule'
-import { knownObligations } from '../layers/finance/logic/cashProjection'
+import { getKnownObligations } from '../layers/finance/logic/cashProjection'
 import { getTaxState } from '../layers/tax/taxStore'
 import { getUpcomingObligations, getTotalTaxOwed, calculateComplianceScore, detectDeadlineClusters } from '../layers/tax/logic/taxLogic'
 
@@ -31,7 +31,7 @@ export function buildContext(): string {
   const apSchedule = calculateAPSchedule(mockInvoices)
 
   const today = new Date()
-  const finUpcoming = knownObligations
+  const finUpcoming = getKnownObligations()
     .map(o => ({ ...o, daysUntil: Math.floor((new Date(o.date).getTime() - today.getTime()) / 86400000) }))
     .filter(o => o.daysUntil >= 0 && o.daysUntil <= 30)
     .sort((a, b) => a.daysUntil - b.daysUntil)
@@ -109,6 +109,20 @@ CIKTI FORMATI: SADECE su JSON yapisinda yanit ver, baska hicbir sey yazma:
 Sadece veride karsiligi olan kollari ekle. Eger Finans ve Vergi arasinda bir cakisma varsa, ozet cumlesinde bunu mutlaka belirt.`
 
 export async function generateBriefing(apiKey: string): Promise<Briefing> {
+  // Empty-data guard: if there are no finance or tax records, there is nothing
+  // to brief. Return an empty briefing rather than letting the LLM invent one.
+  const fin = getFinanceState()
+  const tax = getTaxState()
+  const hasData =
+    fin.accounts.length > 0 ||
+    fin.invoices.length > 0 ||
+    fin.transactions.length > 0 ||
+    tax.beyannameler.length > 0 ||
+    tax.compliance.length > 0
+  if (!hasData) {
+    return { ozet: '', kollar: [] }
+  }
+
   const context = buildContext()
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {

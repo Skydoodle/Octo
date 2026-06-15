@@ -38,8 +38,15 @@ export function useBriefing() {
       }
       const result = await generateBriefing(GROQ_API_KEY)
       setBriefing(result)
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(result))
-      sessionStorage.setItem(CACHE_DATE_KEY, today)
+      // Only cache a real briefing. An empty result means there's no data yet;
+      // caching it would suppress the briefing once data is entered.
+      if (result.ozet || result.kollar.length > 0) {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(result))
+        sessionStorage.setItem(CACHE_DATE_KEY, today)
+      } else {
+        sessionStorage.removeItem(CACHE_KEY)
+        sessionStorage.removeItem(CACHE_DATE_KEY)
+      }
     } catch (err) {
       setError('Brifing olusturulamadi.')
       setBriefing({ ozet: 'Brifing yuklenemedi, yeniden deneyin.', kollar: [] })

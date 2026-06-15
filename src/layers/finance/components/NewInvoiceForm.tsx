@@ -2,6 +2,9 @@ import { useState } from 'react'
 import Modal from '../../../surfaces/dashboard/components/Modal'
 import type { Invoice } from '../types'
 import { tevkifatOranlari, tevkifatKategorileri, type TevkifatOrani } from '../../tax/logic/tevkifat'
+import { useCariStore, ensurePerakendeCari } from '../cari/cariStore'
+import NewCariForm from '../cari/NewCariForm'
+import { PERAKENDE_CARI_ID, type Cari } from '../cari/types'
 
 interface LineItem {
   id: string
@@ -19,13 +22,34 @@ interface Props {
 const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-ink-mute'
 
 export default function NewInvoiceForm({ onClose, onSave }: Props) {
+  const { cariler } = useCariStore()
   const [type, setType] = useState<'sales' | 'purchase'>('sales')
   const [kdvDurumu, setKdvDurumu] = useState<'normal' | 'tevkifat' | 'istisna'>('normal')
   const [tevkifatOrani, setTevkifatOrani] = useState<TevkifatOrani>('9/10')
   const [contactName, setContactName] = useState('')
   const [contactTaxId, setContactTaxId] = useState('')
+  const [selectedCariId, setSelectedCariId] = useState<string>('')
+  const [showNewCari, setShowNewCari] = useState(false)
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState('')
+
+  // Pick a registered cari: auto-fills name + VKN, locks the fields.
+  const selectCari = (c: Cari) => {
+    setSelectedCariId(c.id)
+    setContactName(c.unvan)
+    setContactTaxId(c.vkn)
+  }
+  // Quick retail flow: one-tap "Perakende Müşteri", no cari card needed.
+  const usePerakende = () => {
+    const p = ensurePerakendeCari()
+    selectCari(p)
+  }
+  const clearCari = () => {
+    setSelectedCariId('')
+    setContactName('')
+    setContactTaxId('')
+  }
+  const isPerakende = selectedCariId === PERAKENDE_CARI_ID
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: '1', description: '', quantity: 1, unitPrice: 0, vatRate: 20 },
   ])
@@ -47,7 +71,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
     '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const buildInvoice = (status: Invoice['status']): Invoice | null => {
-    if (!contactName || !dueDate || lineItems.some(l => !l.description)) return null
+    if (!selectedCariId || !contactName || !dueDate || lineItems.some(l => !l.description)) return null
     return {
       id: 'inv' + Date.now(),
       type,
@@ -76,6 +100,14 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
 
   return (
     <Modal title="Yeni Fatura" onClose={onClose} width="680px">
+      {showNewCari && (
+        <NewCariForm
+          onClose={() => setShowNewCari(false)}
+          onSaved={(c) => selectCari(c)}
+          initialUnvan={contactName}
+          initialVkn={contactTaxId}
+        />
+      )}
       {/* Invoice type */}
       <div className="mb-5">
         <span className="label mb-1.5 block text-ink-mute">Fatura Tipi</span>
@@ -94,26 +126,45 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
         </div>
       </div>
 
-      {/* Contact */}
-      <div className="mb-5 grid grid-cols-2 gap-4">
-        <div>
-          <span className="label mb-1.5 block text-ink-mute">{type === 'sales' ? 'Müşteri' : 'Tedarikçi'}</span>
-          <input
-            className={inputCls}
-            value={contactName}
-            onChange={e => setContactName(e.target.value)}
-            placeholder={type === 'sales' ? 'Müşteri adı' : 'Tedarikçi adı'}
-          />
-        </div>
-        <div>
-          <span className="label mb-1.5 block text-ink-mute">VKN / TCKN</span>
-          <input
-            className={inputCls}
-            value={contactTaxId}
-            onChange={e => setContactTaxId(e.target.value)}
-            placeholder="Vergi / TC kimlik no"
-          />
-        </div>
+      {/* Cari selection */}
+      <div className="mb-5">
+        <span className="label mb-1.5 block text-ink-mute">{type === 'sales' ? 'Müşteri (Cari)' : 'Tedarikçi (Cari)'}</span>
+
+        {selectedCariId ? (
+          <div className="flex items-center justify-between rounded border border-line bg-surface px-3 py-2.5">
+            <div>
+              <div className="text-sm font-medium text-ink">{contactName}</div>
+              <div className="font-mono text-xs text-ink-mute">{isPerakende ? 'Perakende satış' : 'VKN: ' + contactTaxId}</div>
+            </div>
+            <button onClick={clearCari} className="text-xs text-ink-mute hover:text-crimson">değiştir</button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <select
+              className={inputCls + ' cursor-pointer'}
+              value=""
+              onChange={e => {
+                const c = cariler.find(x => x.id === e.target.value)
+                if (c) selectCari(c)
+              }}
+            >
+              <option value="">Kayıtlı cari seç…</option>
+              {cariler.filter(c => c.id !== PERAKENDE_CARI_ID).map(c => (
+                <option key={c.id} value={c.id}>{c.unvan} — {c.vkn}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button onClick={() => setShowNewCari(true)} className="flex-1 rounded border border-dashed border-line px-3 py-2 text-sm text-ink-mute hover:border-crimson hover:text-crimson">
+                + Yeni cari oluştur
+              </button>
+              {type === 'sales' && (
+                <button onClick={usePerakende} className="flex-1 rounded border border-dashed border-line px-3 py-2 text-sm text-ink-mute hover:border-crimson hover:text-crimson">
+                  Perakende müşteri
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dates */}

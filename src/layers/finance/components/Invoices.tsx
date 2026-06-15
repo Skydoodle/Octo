@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useFinanceStore, addInvoice } from '../financeStore'
+import { useFinanceStore, addInvoice, settleInvoice } from '../financeStore'
 import type { Invoice } from '../types'
 import NewInvoiceForm from './NewInvoiceForm'
 import ExcelImport from '../../../import/ExcelImport'
@@ -102,10 +102,19 @@ export default function Invoices() {
             <span className="font-mono text-xs text-ink-mute">{inv.issueDate}</span>
             <span className={'font-mono text-xs ' + (inv.status === 'overdue' ? 'text-crimson' : 'text-ink-mute')}>{inv.dueDate}</span>
             <span className="font-mono text-sm font-medium text-ink">{fmt(inv.total)}</span>
-            <div>
+            <div className="flex items-center gap-2">
               <span className={'rounded px-2 py-1 text-xs font-medium ' + statusClass[inv.status]}>
                 {statusLabel[inv.status]}
               </span>
+              {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                <button
+                  onClick={() => settleInvoice(inv.id)}
+                  title="Tahsil edildi olarak işaretle ve nakite işle"
+                  className="rounded border border-line px-2 py-1 text-xs text-ink-mute transition-colors hover:border-positive hover:text-positive"
+                >
+                  Tahsil et
+                </button>
+              )}
             </div>
           </div>
         ))}
