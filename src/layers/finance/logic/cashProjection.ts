@@ -46,6 +46,7 @@ import { getTaxState } from '../../tax/taxStore'
 import { beyannameLabels } from '../../tax/types'
 import { isDemoMode } from '../../../shared/config'
 import { buBordroDonemi } from '../../hr/hrStore'
+import { acikAlisSiparisYukumlulukleri } from '../../operations/opStore'
 
 export interface Obligation {
   date: string
@@ -80,14 +81,25 @@ export function getKnownObligations(): Obligation[] {
   // — the flagship cross-arm signal, now driven by real personnel data.
   const payroll = getPayrollObligations()
 
-  const combined = [...real, ...payroll]
+  // Operasyon: open purchase orders are future cash outflows.
+  const purchaseOrders = getPurchaseObligations()
+
+  const combined = [...real, ...payroll, ...purchaseOrders]
   if (combined.length > 0) return combined
   // No real data: show demo obligations only in demo mode, otherwise nothing.
   return isDemoMode() ? demoObligations : []
 }
 
-// Derive cash obligations from the İK payroll run: net salaries (paid ~end of
-// month) and the SGK premium (due ~23rd of the following month).
+// Derive cash obligations from open purchase orders (Operasyon → Finans).
+function getPurchaseObligations(): Obligation[] {
+  try {
+    return acikAlisSiparisYukumlulukleri().map(y => ({
+      date: y.date, amount: y.amount, description: y.description,
+    }))
+  } catch {
+    return []
+  }
+}
 function getPayrollObligations(): Obligation[] {
   try {
     const donem = buBordroDonemi()

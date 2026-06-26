@@ -116,6 +116,39 @@ export function brutToNet(brut: number, sgkIndirimli = false): { net: number; is
   return { net: b.netMaas, isverenMaliyeti: b.isverenMaliyeti }
 }
 
+// Netten brüte (reverse calculation). There is no closed-form inverse because
+// the income-tax brackets are piecewise and the asgari ücret istisnası clamps,
+// so we binary-search the gross that yields the requested net. Employers use
+// this constantly ("I want to pay X net — what's the gross and total cost?").
+export function netToBrut(
+  hedefNet: number,
+  sgkIndirimli = false,
+  kumulatifMatrahOnce = 0,
+): { brut: number; net: number; isverenMaliyeti: number; bordro: Bordro } {
+  const mk = (brut: number): Personel => ({
+    id: '_', ad: '', soyad: '', tcKimlik: '', iseGirisTarihi: '',
+    brutMaas: brut, departman: '', pozisyon: '', sgkDurumu: 'normal',
+    calismaSekli: 'tam_zamanli', sgkIndirimli, aktif: true,
+  })
+  const netForBrut = (brut: number) =>
+    bordroHesapla({ personel: mk(brut), donem: '2026-01', kumulatifMatrahOnce }).netMaas
+
+  // Net is always < gross, so gross is bounded below by hedefNet and above by
+  // ~2x (deductions never exceed ~50%). Binary search to 1 kuruş precision.
+  let lo = hedefNet
+  let hi = hedefNet * 2.2 + 1000
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    const net = netForBrut(mid)
+    if (Math.abs(net - hedefNet) < 0.01) { lo = hi = mid; break }
+    if (net < hedefNet) lo = mid
+    else hi = mid
+  }
+  const brut = Math.round(((lo + hi) / 2) * 100) / 100
+  const bordro = bordroHesapla({ personel: mk(brut), donem: '2026-01', kumulatifMatrahOnce })
+  return { brut, net: bordro.netMaas, isverenMaliyeti: bordro.isverenMaliyeti, bordro }
+}
+
 // Attendance-adjusted gross: unpaid days (devamsız, ücretsiz izin) reduce the
 // month's gross pro-rata over 30 days; overtime hours add at 1.5x hourly.
 export interface PuantajGirdi {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal'
 import { disableDemo } from '../../../shared/config'
+import { useDoviz, setUsdTry, fetchTcmbUsdTry } from '../../../shared/doviz'
 
 interface Props {
   onClose: () => void
@@ -12,6 +13,18 @@ interface Props {
 // context. Keeping this panel focused avoids "is this my data or fake data?".
 export default function DataManager({ onClose }: Props) {
   const [confirming, setConfirming] = useState(false)
+  const { usdTry, guncellenme } = useDoviz()
+  const [rateInput, setRateInput] = useState(String(usdTry))
+  const [kurMesaj, setKurMesaj] = useState('')
+  const [kurYukleniyor, setKurYukleniyor] = useState(false)
+
+  const tcmbCek = async () => {
+    setKurYukleniyor(true); setKurMesaj('')
+    const sonuc = await fetchTcmbUsdTry()
+    if (sonuc.kaynak === 'tcmb' && sonuc.rate) setRateInput(String(sonuc.rate))
+    setKurMesaj(sonuc.mesaj)
+    setKurYukleniyor(false)
+  }
   const [done, setDone] = useState<string>('')
 
   const clearAll = () => {
@@ -22,6 +35,7 @@ export default function DataManager({ onClose }: Props) {
       localStorage.removeItem('ledger')
       localStorage.removeItem('cari')
       localStorage.removeItem('hr')
+      localStorage.removeItem('operations')
       sessionStorage.clear()
     } catch { /* ignore */ }
     setDone('Tüm veriler temizlendi.')
@@ -38,6 +52,36 @@ export default function DataManager({ onClose }: Props) {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* USD/TRY rate */}
+          <div className="rounded-card border border-line p-4">
+            <div className="text-sm font-medium text-ink">Döviz Kuru (USD/TRY)</div>
+            <div className="mt-0.5 text-xs text-ink-mute">Bakiyeleri dolar görüntülemek için kullanılır. Son güncelleme: {guncellenme}</div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm text-ink-mute">1 $ =</span>
+              <input
+                type="number"
+                value={rateInput}
+                onChange={e => setRateInput(e.target.value)}
+                className="w-28 rounded border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-ink-mute"
+              />
+              <span className="text-sm text-ink-mute">₺</span>
+              <button
+                onClick={() => { const r = parseFloat(rateInput); if (r > 0) setUsdTry(r) }}
+                className="ml-2 rounded bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+              >
+                Güncelle
+              </button>
+              <button
+                onClick={tcmbCek}
+                disabled={kurYukleniyor}
+                className="rounded border border-line px-4 py-2 text-sm font-medium text-ink-soft hover:border-crimson hover:text-crimson disabled:opacity-50"
+              >
+                {kurYukleniyor ? 'Çekiliyor…' : 'Canlı Çek (TCMB)'}
+              </button>
+            </div>
+            {kurMesaj && <div className="mt-2 text-xs text-ink-mute">{kurMesaj}</div>}
+          </div>
+
           <p className="text-sm text-ink-soft">
             Octo'daki tüm verileri buradan temizleyebilirsin. Demo verisini görmek için ana sayfadaki "Demoyu gör" düğmesini kullan.
           </p>

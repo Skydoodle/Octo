@@ -8,12 +8,21 @@ import {
   import { getTotalReceivables, getOverdueReceivables, calculateARAging } from '../logic/arAging'
   import { getTotalPayables, getUpcomingPayables } from '../logic/apSchedule'
   import { monthlyTrend as buildTrend, expenseByCategory, financialRatios, momDelta, sparkFromTrend } from '../logic/metrics'
-  
-  const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
-  const fmtK = (n: number) => n >= 1000000 ? '₺' + (n/1000000).toFixed(1) + 'M' : n >= 1000 ? '₺' + (n/1000).toFixed(0) + 'K' : '₺' + n
+  import { useDoviz, cevir, type ParaBirimi } from '../../../shared/doviz'
+  import { useState } from 'react'
+
   const fmtDelta = (d: number | null) => d === null ? '—' : (d >= 0 ? '+' : '') + d.toFixed(1) + '%'
   
   export default function Overview() {
+    const { usdTry } = useDoviz()
+    const [para, setPara] = useState<ParaBirimi>('TRY')
+    const sembol = para === 'TRY' ? '₺' : '$'
+    const loc = para === 'TRY' ? 'tr-TR' : 'en-US'
+    const fmt = (n: number) => sembol + Math.round(cevir(n, para, usdTry)).toLocaleString(loc)
+    const fmtK = (n: number) => {
+      const v = cevir(n, para, usdTry)
+      return v >= 1000000 ? sembol + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? sembol + (v/1000).toFixed(0) + 'K' : sembol + Math.round(v)
+    }
   const { accounts: mockAccounts, invoices: mockInvoices, transactions: mockTransactions } = useFinanceStore()
     const cash = calculateCashPosition(mockAccounts)
     const monthlyExpenses = calculateMonthlyExpenses(mockTransactions)
@@ -52,6 +61,23 @@ import {
   
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        {/* Currency toggle */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '11px', color: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }}>1$ = ₺{usdTry.toFixed(2)}</span>
+          <div style={{ display: 'flex', border: '1px solid rgb(var(--line))', borderRadius: '6px', overflow: 'hidden' }}>
+            {(['TRY', 'USD'] as ParaBirimi[]).map(p => (
+              <button key={p} onClick={() => setPara(p)}
+                style={{
+                  padding: '4px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', border: 'none',
+                  background: para === p ? 'rgb(var(--crimson))' : 'transparent',
+                  color: para === p ? '#fff' : 'rgb(var(--ink-mute))',
+                }}>
+                {p === 'TRY' ? '₺ TRY' : '$ USD'}
+              </button>
+            ))}
+          </div>
+        </div>
   
         {/* ROW 1 — KPI cards with sparklines */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>

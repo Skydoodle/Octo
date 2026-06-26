@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Modal from '../../surfaces/dashboard/components/Modal'
 import { addPersonel } from './hrStore'
-import { brutToNet } from './bordroEngine'
+import { brutToNet, netToBrut } from './bordroEngine'
 import { departmanlar, personelEksikAlanlar, type Personel, type SgkDurumu } from './types'
 
 interface Props {
@@ -20,6 +20,7 @@ export default function NewPersonelForm({ onClose }: Props) {
   const [pozisyon, setPozisyon] = useState('')
   const [iseGirisTarihi, setIseGirisTarihi] = useState(new Date().toISOString().slice(0, 10))
   const [sgkIndirimli, setSgkIndirimli] = useState(true)
+  const [ucretTipi, setUcretTipi] = useState<'brut' | 'net'>('brut')
   const [telefon, setTelefon] = useState('')
   const [eposta, setEposta] = useState('')
   const [adres, setAdres] = useState('')
@@ -29,10 +30,13 @@ export default function NewPersonelForm({ onClose }: Props) {
   const [acilTelefon, setAcilTelefon] = useState('')
   const [touched, setTouched] = useState(false)
 
-  const brut = parseFloat(brutMaas) || 0
+  const girilen = parseFloat(brutMaas) || 0
+  // If the user entered a NET figure, solve for the gross that produces it.
+  const cozum = girilen > 0 && ucretTipi === 'net' ? netToBrut(girilen, sgkIndirimli) : null
+  const brut = ucretTipi === 'net' ? (cozum?.brut ?? 0) : girilen
   const preview = brut > 0 ? brutToNet(brut, sgkIndirimli) : null
-  // Required: ad, TC, brüt. Warn-only: telefon, IBAN.
-  const valid = ad.trim() && tcKimlik.trim() && brut > 0
+  // Required: ad, TC, brüt/net girilen > 0.
+  const valid = ad.trim() && tcKimlik.trim() && girilen > 0
   const eksikUyari = personelEksikAlanlar({ telefon, iban })
 
   const save = () => {
@@ -104,8 +108,25 @@ export default function NewPersonelForm({ onClose }: Props) {
       </div>
 
       <div className="mb-4">
-        <span className={labelCls}>Brüt Maaş (aylık) <span className="text-crimson">*</span></span>
-        <input type="number" className={inputCls + reqBorder(brut <= 0)} value={brutMaas} onChange={e => setBrutMaas(e.target.value)} placeholder="33030" />
+        <span className={labelCls}>Ücret Tipi</span>
+        <div className="mb-2 flex gap-2">
+          {([['brut', 'Brütten Nete'], ['net', 'Netten Brüte']] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => setUcretTipi(v)}
+              className={'flex-1 rounded border px-3 py-2 text-sm transition-colors ' +
+                (ucretTipi === v ? 'border-crimson bg-crimson/5 font-medium text-crimson' : 'border-line text-ink-mute hover:text-ink')}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <span className={labelCls}>
+          {ucretTipi === 'brut' ? 'Brüt Maaş (aylık)' : 'Net Maaş (aylık, ele geçen)'} <span className="text-crimson">*</span>
+        </span>
+        <input type="number" className={inputCls + reqBorder(girilen <= 0)} value={brutMaas} onChange={e => setBrutMaas(e.target.value)} placeholder={ucretTipi === 'brut' ? '33030' : '28075'} />
+        {ucretTipi === 'net' && cozum && (
+          <p className="mt-1.5 text-xs text-ink-mute">
+            Hesaplanan brüt: <span className="font-mono text-ink">{fmt(cozum.brut)}</span> · işveren maliyeti: <span className="font-mono text-crimson">{fmt(cozum.isverenMaliyeti)}</span>
+          </p>
+        )}
       </div>
 
       {/* İletişim & banka */}
