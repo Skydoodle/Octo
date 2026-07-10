@@ -7,7 +7,12 @@ export function Wordmark({ className = '' }: { className?: string }) {
 export function ThemeToggle() {
   const { theme, toggle } = useTheme()
   return (
-    <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:text-crimson hover:border-crimson/40">
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={theme === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç'}
+      className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:border-crimson/40 hover:text-crimson focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson"
+    >
       {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
     </button>
   )

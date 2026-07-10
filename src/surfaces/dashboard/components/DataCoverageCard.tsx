@@ -101,49 +101,96 @@ function ObligationSettingsModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-export default function DataCoverageCard() {
+function CoveragePanel({
+  coverage,
+  openSettings,
+}: {
+  coverage: ReturnType<typeof buildDataCoverage>
+  openSettings: () => void
+}) {
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <Label>Octo’nun Görüş Alanı</Label>
+          <p className="mt-1 text-xs text-ink-mute">Güvenle değerlendirilebilen kayıtlar ve tamamlanması gereken bilgiler.</p>
+        </div>
+        <button
+          type="button"
+          onClick={openSettings}
+          className="focus-ring inline-flex items-center gap-1.5 rounded border border-line px-3 py-2 text-xs text-ink-soft hover:border-crimson hover:text-crimson"
+        >
+          <Settings2 size={13} /> Ödeme ayarları
+        </button>
+      </div>
+      <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+        {coverage.domains.map((domain, index) => (
+          <div key={domain.domain} className={'py-3 sm:px-4 sm:py-1 ' + (index === 0 ? 'sm:pl-0' : '')}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <StatusIcon status={domain.status} />
+                <span className="text-sm font-medium text-ink">{domain.label}</span>
+              </div>
+              <span className={'rounded px-2 py-0.5 text-[10px] font-medium ' + statusStyle[domain.status]}>{statusLabel[domain.status]}</span>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">{domain.explanation}</p>
+            {domain.missingActions[0] && (
+              <p className="mt-2 text-[11px] leading-relaxed text-ink-mute"><span className="font-medium text-ink-soft">Sonraki adım:</span> {domain.missingActions[0]}</p>
+            )}
+            <p className="mt-2 text-[10px] text-ink-mute">{domain.freshness}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function DataCoverageCard({ compact = false }: { compact?: boolean }) {
   useFinanceStore()
   useTaxStore()
   useIKStore()
   useOpStore()
   useCompanyObligationSettings()
   const [showSettings, setShowSettings] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
   const coverage = buildDataCoverage()
+  const ready = coverage.domains.filter(domain => domain.status === 'ready').length
+  const missing = coverage.domains.reduce((sum, domain) => sum + domain.missingActions.length, 0)
+
+  const openSettings = () => {
+    setShowDetail(false)
+    setShowSettings(true)
+  }
+
+  if (compact) {
+    return (
+      <>
+        {showSettings && <ObligationSettingsModal onClose={() => setShowSettings(false)} />}
+        {showDetail && (
+          <Modal title="Veri durumu" onClose={() => setShowDetail(false)} width="900px">
+            <CoveragePanel coverage={coverage} openSettings={openSettings} />
+          </Modal>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowDetail(true)}
+          className="focus-ring flex w-full items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left shadow-soft transition-colors hover:border-crimson/30"
+        >
+          <span>
+            <span className="text-sm font-medium text-ink">Veri durumu: {ready}/4 hazır</span>
+            <span className="ml-2 text-xs text-ink-mute">{missing > 0 ? `${missing} bilgi eksik` : 'Temel kayıtlar hazır'}</span>
+          </span>
+          <span className="text-xs font-medium text-crimson">Detayı gör</span>
+        </button>
+      </>
+    )
+  }
 
   return (
     <>
       {showSettings && <ObligationSettingsModal onClose={() => setShowSettings(false)} />}
       <Card className="p-5" delay={20}>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <Label>Octo’nun Görüş Alanı</Label>
-            <p className="mt-1 text-xs text-ink-mute">Güvenle değerlendirilebilen kayıtlar ve tamamlanması gereken bilgiler.</p>
-          </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="inline-flex items-center gap-1.5 rounded border border-line px-3 py-2 text-xs text-ink-soft hover:border-crimson hover:text-crimson"
-          >
-            <Settings2 size={13} /> Ödeme ayarları
-          </button>
-        </div>
-        <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-          {coverage.domains.map((domain, index) => (
-            <div key={domain.domain} className={'py-3 sm:px-4 sm:py-1 ' + (index === 0 ? 'sm:pl-0' : '')}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <StatusIcon status={domain.status} />
-                  <span className="text-sm font-medium text-ink">{domain.label}</span>
-                </div>
-                <span className={'rounded px-2 py-0.5 text-[10px] font-medium ' + statusStyle[domain.status]}>{statusLabel[domain.status]}</span>
-              </div>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft">{domain.explanation}</p>
-              {domain.missingActions[0] && (
-                <p className="mt-2 text-[11px] leading-relaxed text-ink-mute"><span className="font-medium text-ink-soft">Sonraki adım:</span> {domain.missingActions[0]}</p>
-              )}
-              <p className="mt-2 text-[10px] text-ink-mute">{domain.freshness}</p>
-            </div>
-          ))}
-        </div>
+        <CoveragePanel coverage={coverage} openSettings={openSettings} />
       </Card>
     </>
   )
