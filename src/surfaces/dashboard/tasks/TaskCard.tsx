@@ -36,7 +36,7 @@ export default function TaskCard({
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-mute">
           {task.dueDate && <span className="inline-flex items-center gap-1"><Calendar size={13} /> {task.dueDate}</span>}
           {task.responsible && <span className="inline-flex items-center gap-1"><UserRound size={13} /> {task.responsible}</span>}
-          {task.remainingLeave !== undefined && <span>Kalan yıllık izin: {task.remainingLeave} gün</span>}
+          {task.remainingLeave !== undefined && <span>Mevcut yıllık izin: {task.remainingLeave} gün</span>}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
           {task.sourceType === 'leave' && task.category === 'approvals' ? (
