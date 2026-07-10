@@ -1,6 +1,6 @@
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-    CartesianGrid, Tooltip, ResponsiveContainer, Legend
+    CartesianGrid, Tooltip, ResponsiveContainer
   } from 'recharts'
   import { useFinanceStore } from '../financeStore'
   import EmptyState from '../../../shared/utils/EmptyState'

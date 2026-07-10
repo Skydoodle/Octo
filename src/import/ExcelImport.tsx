@@ -100,9 +100,10 @@ export default function ExcelImport({ onClose, onDone }: Props) {
         // Add as unsettled first, then settle, so the settlement transaction
         // and cash movement are generated through the normal path.
         const inv = wasPaid ? { ...b.invoice, status: 'sent' as const } : b.invoice
-        addInvoice(inv)
-        if (wasPaid) settleInvoice(inv.id, firstAccountId || undefined)
-        n++
+        if (addInvoice(inv)) {
+          if (wasPaid) settleInvoice(inv.id, firstAccountId || undefined)
+          n++
+        }
       }
     })
 
@@ -272,7 +273,10 @@ export default function ExcelImport({ onClose, onDone }: Props) {
                           <span className="text-xs text-warn" title={b.warnings.join(', ')}>uyarı</span>
                         ) : (
                           <button onClick={() => {
-                            const n = new Set(excluded); off ? n.delete(b.index) : n.add(b.index); setExcluded(n)
+                            const n = new Set(excluded)
+                            if (off) n.delete(b.index)
+                            else n.add(b.index)
+                            setExcluded(n)
                           }} className="text-xs text-ink-mute hover:text-ink">
                             {off ? 'geri al' : 'çıkar'}
                           </button>

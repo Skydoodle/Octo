@@ -1,13 +1,14 @@
 // Octo — Dashboard derivations
-// Builds the dashboard's audit summary and 30-day horizon from LIVE store
-// state. When stores are empty these return empty arrays, and the dashboard
-// shows EmptyState instead of fabricated rows.
+// Audit and horizon are built from live stores. The horizon now includes Tax,
+// Finance, HR and Operations so it mirrors the reasoning engine's field of view.
 
 import { getFinanceState } from '../../layers/finance/financeStore'
 import { getTaxState } from '../../layers/tax/taxStore'
+import { getOpState, tumStokTahminleri } from '../../layers/operations/opStore'
 import { mizanTotals, getLedgerState } from '../../layers/finance/muhasebe/ledgerStore'
 import { getFreshness } from '../../shared/store/persist'
 import { beyannameLabels, statusLabels } from '../../layers/tax/types'
+import { calendarDaysBetween, dateOnlyFromLocalDate, isDateOnly } from '../../shared/dateOnly'
 
 export interface AuditRow {
   area: string
@@ -15,23 +16,16 @@ export interface AuditRow {
   note: string
 }
 
-// Denetim Özeti — derived from real finance + tax records.
-// Each row only appears when there's underlying data to justify it.
 export function buildAuditSummary(): AuditRow[] {
   const fin = getFinanceState()
   const tax = getTaxState()
+  const op = getOpState()
   const rows: AuditRow[] = []
 
-  // Bank reconciliation — only meaningful if there are accounts.
   if (fin.accounts.length > 0) {
-    rows.push({
-      area: 'Banka Mutabakatı',
-      status: 'warn',
-      note: 'Otomatik mutabakat bağlı değil',
-    })
+    rows.push({ area: 'Banka Mutabakatı', status: 'warn', note: 'Otomatik mutabakat bağlı değil' })
   }
 
-  // Trial-balance health — a real audit signal from the general ledger.
   const ledger = getLedgerState()
   if (ledger.entries.length > 0) {
     const mt = mizanTotals()
@@ -42,10 +36,9 @@ export function buildAuditSummary(): AuditRow[] {
     })
   }
 
-  // KDV beyanname readiness — from real beyanname records.
   const kdv = tax.beyannameler.filter(b => b.type === 'kdv')
   if (kdv.length > 0) {
-    const latest = kdv[0]
+    const latest = [...kdv].sort((a, b) => b.donem.localeCompare(a.donem))[0]
     rows.push({
       area: 'KDV Beyanname',
       status: latest.status === 'odendi' || latest.status === 'gonderildi' ? 'ok' : 'warn',
@@ -53,7 +46,6 @@ export function buildAuditSummary(): AuditRow[] {
     })
   }
 
-  // Muhtasar timeliness — from real records.
   const muhtasar = tax.beyannameler.filter(b => b.type === 'muhtasar')
   if (muhtasar.length > 0) {
     const overdue = muhtasar.some(b => b.status === 'gecikti')
@@ -64,12 +56,21 @@ export function buildAuditSummary(): AuditRow[] {
     })
   }
 
-  // Compliance items from the tax store map straight to audit rows.
   for (const c of tax.compliance) {
     rows.push({
       area: c.alan,
       status: c.durum === 'tamam' ? 'ok' : 'warn',
       note: c.not,
+    })
+  }
+
+  if (op.urunler.length > 0) {
+    const withoutMovement = op.urunler.filter(u => u.aktif && u.tip !== 'hizmet')
+      .filter(u => !op.hareketler.some(h => h.urunId === u.id)).length
+    rows.push({
+      area: 'Stok İzlenebilirliği',
+      status: withoutMovement === 0 ? 'ok' : 'warn',
+      note: withoutMovement === 0 ? 'Tüm aktif stoklarda hareket var' : `${withoutMovement} üründe hareket yok`,
     })
   }
 
@@ -89,47 +90,70 @@ function dayLabel(days: number): string {
   return `+${days} gün`
 }
 
-// 30 Günlük Ufuk — upcoming tax deadlines + invoice due dates, from real data.
-export function buildHorizon(): HorizonItem[] {
+export function buildHorizon(now = new Date()): HorizonItem[] {
   const fin = getFinanceState()
   const tax = getTaxState()
-  const now = Date.now()
+  const op = getOpState()
+  const today = dateOnlyFromLocalDate(now)
   const items: HorizonItem[] = []
+  const daysUntil = (iso: string) => calendarDaysBetween(today, iso)
+  const push = (iso: string, event: string, tone: HorizonItem['tone']) => {
+    const d = daysUntil(iso)
+    if (d === null || d < 0 || d > 30) return
+    items.push({ day: dayLabel(d), event, tone, sortKey: d })
+  }
 
-  const daysUntil = (iso: string) => Math.floor((new Date(iso).getTime() - now) / 86400000)
-
-  // Upcoming beyanname deadlines (next 30 days, not yet filed/paid).
   for (const b of tax.beyannameler) {
-    if (b.status === 'odendi' || b.status === 'gonderildi') continue
-    const d = daysUntil(b.sonTarih)
-    if (d < 0 || d > 30) continue
-    items.push({
-      day: dayLabel(d),
-      event: `${beyannameLabels[b.type]} son günü`,
-      tone: d <= 7 ? 'crimson' : 'warn',
-      sortKey: d,
-    })
+    if (b.status === 'odendi' || !isDateOnly(b.sonTarih)) continue
+    const days = daysUntil(b.sonTarih)
+    push(
+      b.sonTarih,
+      `${beyannameLabels[b.type]} ${b.status === 'gonderildi' ? 'ödeme' : 'beyan/ödeme'} son günü`,
+      days !== null && days <= 7 ? 'crimson' : 'warn',
+    )
   }
 
-  // Upcoming invoice due dates (receivables coming in, payables going out).
   for (const inv of fin.invoices) {
-    if (inv.status === 'paid' || inv.status === 'cancelled') continue
-    const d = daysUntil(inv.dueDate)
-    if (d < 0 || d > 30) continue
-    items.push({
-      day: dayLabel(d),
-      event:
-        inv.type === 'sales'
-          ? `${inv.contactName} tahsilat vadesi`
-          : `${inv.contactName} ödeme vadesi`,
-      tone: inv.type === 'sales' ? 'positive' : 'mute',
-      sortKey: d,
-    })
+    if (inv.status === 'paid' || inv.status === 'cancelled' || inv.status === 'draft' || !isDateOnly(inv.dueDate)) continue
+    push(
+      inv.dueDate,
+      inv.type === 'sales' ? `${inv.contactName} tahsilat vadesi` : `${inv.contactName} ödeme vadesi`,
+      inv.type === 'sales' ? 'positive' : 'mute',
+    )
   }
 
-  return items.sort((a, b) => a.sortKey - b.sortKey).slice(0, 8)
+  for (const order of op.siparisler) {
+    if (order.durum !== 'onaylandi' && order.durum !== 'kismi') continue
+    const eventDate = order.tur === 'satis' ? order.teslimTarihi : order.odemeTarihi
+    if (!eventDate || !isDateOnly(eventDate) || (order.tur === 'alis' && order.faturalandi)) continue
+    push(
+      eventDate,
+      order.tur === 'satis' ? `${order.no} satış siparişi teslimi` : `${order.no} alış siparişi ödemesi`,
+      order.tur === 'satis' ? 'positive' : 'mute',
+    )
+  }
+
+  for (const production of op.uretimler) {
+    if (production.durum !== 'planlandi' && production.durum !== 'devam') continue
+    push(production.hedefTarih, `${production.no} üretim hedefi`, 'warn')
+  }
+
+  for (const forecast of tumStokTahminleri(now)) {
+    if (forecast.aciliyet !== 'simdi' && forecast.aciliyet !== 'gecikti' && forecast.aciliyet !== 'yakinda') continue
+    const product = op.urunler.find(u => u.id === forecast.urunId)
+    const reorderDate = forecast.yenidenSiparisTarihi
+    if (!product || !reorderDate) continue
+    push(reorderDate, `${product.ad} yeniden sipariş zamanı`, forecast.aciliyet === 'yakinda' ? 'warn' : 'crimson')
+  }
+
+  return items.sort((a, b) => a.sortKey - b.sortKey).slice(0, 10)
 }
 
 export function dataFreshness() {
-  return { tax: getFreshness('tax'), finance: getFreshness('finance') }
+  return {
+    tax: getFreshness('tax'),
+    finance: getFreshness('finance'),
+    hr: getFreshness('hr'),
+    operations: getFreshness('operations'),
+  }
 }

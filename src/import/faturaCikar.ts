@@ -132,7 +132,7 @@ export async function faturaCikar(file: File): Promise<CikarimSonuc> {
       guven: ['yuksek', 'orta', 'dusuk'].includes(parsed.guven) ? parsed.guven : 'orta',
     }
     return { ok: true, fatura }
-  } catch (e) {
+  } catch {
     return { ok: false, hata: 'Fatura okunamadı. Görselin net olduğundan emin olun.' }
   }
 }

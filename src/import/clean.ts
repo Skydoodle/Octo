@@ -84,9 +84,10 @@ export function parseTurkishDate(raw: unknown): string | null {
   if (m) return `${m[1]}-${m[2]}-${m[3]}`
 
   // GG.AA.YYYY or GG/AA/YYYY or GG-AA-YYYY
-  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})$/)
+  m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/)
   if (m) {
-    let [, dd, mm, yyyy] = m
+    const [, dd, mm] = m
+    let yyyy = m[3]
     if (yyyy.length === 2) yyyy = '20' + yyyy
     return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
   }

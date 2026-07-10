@@ -12,6 +12,7 @@ const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-
 const labelCls = 'label mb-1.5 block text-ink-mute'
 
 export default function NewPersonelForm({ onClose }: Props) {
+  const [personelId] = useState(() => 'per' + Date.now())
   const [ad, setAd] = useState('')
   const [soyad, setSoyad] = useState('')
   const [tcKimlik, setTcKimlik] = useState('')
@@ -43,7 +44,7 @@ export default function NewPersonelForm({ onClose }: Props) {
     setTouched(true)
     if (!valid) return
     const p: Personel = {
-      id: 'per' + Date.now(),
+      id: personelId,
       ad: ad.trim(), soyad: soyad.trim(),
       tcKimlik: tcKimlik.trim(),
       iseGirisTarihi,

@@ -7,7 +7,7 @@ import { seedBeyannameler, seedCompliance } from './seedData'
 import { isDemoMode } from '../../shared/config'
 import type { Beyanname, ComplianceItem } from './types'
 
-interface TaxState {
+export interface TaxState {
   beyannameler: Beyanname[]
   compliance: ComplianceItem[]
 }
@@ -17,7 +17,11 @@ const KEY = 'tax'
 const emptyState: TaxState = { beyannameler: [], compliance: [] }
 const seedState: TaxState = { beyannameler: seedBeyannameler, compliance: seedCompliance }
 
-let state: TaxState = loadOrSeed<TaxState>(KEY, isDemoMode() ? seedState : emptyState)
+const loaded = loadOrSeed<TaxState>(KEY, isDemoMode() ? seedState : emptyState)
+let state: TaxState = {
+  beyannameler: Array.isArray(loaded?.beyannameler) ? loaded.beyannameler : [],
+  compliance: Array.isArray(loaded?.compliance) ? loaded.compliance : [],
+}
 
 const listeners = new Set<() => void>()
 
@@ -37,9 +41,17 @@ function getSnapshot() {
 
 // ---- Actions ----
 
-export function addBeyanname(b: Beyanname) {
-  state = { ...state, beyannameler: [b, ...state.beyannameler] }
+export function addBeyanname(b: Beyanname): boolean {
+  const same = state.beyannameler.find(existing => existing.id === b.id)
+  if (same && JSON.stringify(same) === JSON.stringify(b)) return false
+  // A type + period has one current declaration. A correction supersedes the
+  // earlier record instead of becoming a second cash obligation.
+  const others = state.beyannameler.filter(existing =>
+    existing.id !== b.id && !(existing.type === b.type && existing.donem === b.donem),
+  )
+  state = { ...state, beyannameler: [b, ...others] }
   emit()
+  return true
 }
 
 export function updateBeyannameStatus(id: string, status: Beyanname['status']) {

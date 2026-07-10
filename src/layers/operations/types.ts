@@ -124,9 +124,11 @@ export interface Siparis {
   cariUnvan: string          // denormalize, hızlı gösterim
   tarih: string              // sipariş tarihi
   teslimTarihi: string       // beklenen teslim
+  odemeTarihi?: string       // alış siparişinde teyit edilmiş ödeme tarihi
   durum: SiparisDurumu
   satirlar: SiparisSatiri[]
   faturalandi: boolean       // faturaya dönüştü mü
+  faturaId?: string          // bağlı Finans faturası (tam faturalama)
   aciklama?: string
 }
 
@@ -137,6 +139,18 @@ export function siparisToplam(s: Siparis): { netToplam: number; kdvToplam: numbe
     const satirNet = r.miktar * r.birimFiyat
     net += satirNet
     kdv += satirNet * r.kdvOrani / 100
+  }
+  return { netToplam: net, kdvToplam: kdv, genelToplam: net + kdv }
+}
+
+// Partially fulfilled orders only carry the unfulfilled monetary commitment.
+export function siparisKalanToplam(s: Siparis): { netToplam: number; kdvToplam: number; genelToplam: number } {
+  let net = 0, kdv = 0
+  for (const row of s.satirlar) {
+    const remaining = Math.max(0, row.miktar - row.sevkEdilen)
+    const rowNet = remaining * row.birimFiyat
+    net += rowNet
+    kdv += rowNet * row.kdvOrani / 100
   }
   return { netToplam: net, kdvToplam: kdv, genelToplam: net + kdv }
 }

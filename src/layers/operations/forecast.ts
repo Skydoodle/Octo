@@ -11,6 +11,7 @@
 // veya ani talep değişimini yakalamaz — bu sınır kullanıcıya bildirilir.
 
 import { hareketGirisMi, type StokHareketi, type Urun } from './types'
+import { addDateOnlyDays, dateOnlyFromLocalDate } from '../../shared/dateOnly'
 
 // Tahmin penceresi: son N gün. 60 gün = stabil ama yakın trende duyarlı denge.
 export const TAHMIN_PENCERE_GUN = 60
@@ -38,12 +39,6 @@ export interface StokTahmin {
 }
 
 const GUN_MS = 1000 * 60 * 60 * 24
-
-function isoGunEkle(baseISO: string, gun: number): string {
-  const d = new Date(baseISO)
-  d.setDate(d.getDate() + Math.round(gun))
-  return d.toISOString().slice(0, 10)
-}
 
 // Güven derecesi: pencerede kaç gün veri ve kaç çıkış hareketi var?
 // Az örnek → düşük güven. Bu, tahmini körü körüne kullanmayı engeller.
@@ -92,10 +87,10 @@ export function urunTahmini(
 
   if (gunlukTuketim > 0 && urun.tip !== 'hizmet') {
     kalanGun = mevcutStok / gunlukTuketim
-    const bugunISO = bugun.toISOString().slice(0, 10)
-    tukenmeTarihi = isoGunEkle(bugunISO, kalanGun)
+    const bugunISO = dateOnlyFromLocalDate(bugun)
+    tukenmeTarihi = addDateOnlyDays(bugunISO, kalanGun)
     const reorderGun = kalanGun - urun.tedarikSuresiGun
-    yenidenSiparisTarihi = isoGunEkle(bugunISO, reorderGun)
+    yenidenSiparisTarihi = addDateOnlyDays(bugunISO, reorderGun)
 
     if (reorderGun < 0) aciliyet = 'gecikti'        // sipariş zamanı geçmiş
     else if (reorderGun <= 3) aciliyet = 'simdi'     // hemen sipariş ver

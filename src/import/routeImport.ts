@@ -89,9 +89,10 @@ function importInvoices(sheet: ParsedSheet, accountId: string): number {
     if (!b.invoice) continue
     const wasPaid = b.invoice.status === 'paid'
     const inv = wasPaid ? { ...b.invoice, status: 'sent' as const } : b.invoice
-    addInvoice(inv)
-    if (wasPaid) settleInvoice(inv.id, accountId || undefined)
-    n++
+    if (addInvoice(inv)) {
+      if (wasPaid) settleInvoice(inv.id, accountId || undefined)
+      n++
+    }
   }
   return n
 }
@@ -117,7 +118,7 @@ function importBeyannameler(sheet: ParsedSheet): number {
   const mapping = autoMapTax(sheet)
   const rows = buildTaxRows(sheet, mapping)
   let n = 0
-  for (const b of rows) { if (b.beyanname) { addBeyanname(b.beyanname); n++ } }
+  for (const b of rows) { if (b.beyanname && addBeyanname(b.beyanname)) n++ }
   return n
 }
 

@@ -1,23 +1,25 @@
 import { BankAccount } from '../types'
 
 export function calculateCashPosition(accounts: BankAccount[]) {
+  const sumCurrency = (currency: BankAccount['currency']) => accounts
+    .filter(account => account.currency === currency && Number.isFinite(account.balance))
+    .reduce((sum, account) => sum + account.balance, 0)
   const totalTRY = accounts
-    .filter(a => a.currency === 'TRY')
-    .reduce((sum, a) => sum + a.balance, 0)
+    .filter(account => account.currency === 'TRY' && Number.isFinite(account.balance))
+    .reduce((sum, account) => sum + account.balance, 0)
+  const totalUSD = sumCurrency('USD')
+  const totalEUR = sumCurrency('EUR')
 
-  const totalUSD = accounts
-    .filter(a => a.currency === 'USD')
-    .reduce((sum, a) => sum + a.balance, 0)
-
-  const totalUSDinTRY = totalUSD * 38.5 // approximate exchange rate
-
-  const netCash = totalTRY + totalUSDinTRY
+  // No fabricated FX conversion. `netCash` is explicitly the TRY position;
+  // foreign balances remain visible as separate nominal amounts.
+  const netCash = totalTRY
 
   return {
     netCash,
     totalTRY,
     totalUSD,
-    totalUSDinTRY,
+    totalEUR,
+    conversionMissing: totalUSD !== 0 || totalEUR !== 0,
     accounts,
   }
 }

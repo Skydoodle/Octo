@@ -20,6 +20,11 @@ export interface Invoice {
   dueDate: string
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
   description: string
+  // Exact cross-domain links. Optional fields are migration-safe for existing
+  // persisted invoices and prevent heuristic obligation matching.
+  sourceOrderId?: string
+  obligationKey?: string
+  externalRef?: string
   kdvDurumu?: 'normal' | 'tevkifat' | 'istisna'
   tevkifatOrani?: '2/10' | '3/10' | '4/10' | '5/10' | '7/10' | '9/10' | '10/10'
 }

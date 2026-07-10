@@ -60,7 +60,7 @@ export default function ExcelImportVergi({ onClose, onDone }: Props) {
   const commit = () => {
     let n = 0
     built.forEach(b => {
-      if (b.beyanname && !excluded.has(b.index)) { addBeyanname(b.beyanname); n++ }
+      if (b.beyanname && !excluded.has(b.index) && addBeyanname(b.beyanname)) n++
     })
     setImportedCount(n)
     setStage('done')
@@ -197,7 +197,10 @@ export default function ExcelImportVergi({ onClose, onDone }: Props) {
                           <span className="text-xs text-crimson">{b.errors.join(', ')}</span>
                         ) : (
                           <button onClick={() => {
-                            const n = new Set(excluded); off ? n.delete(b.index) : n.add(b.index); setExcluded(n)
+                            const n = new Set(excluded)
+                            if (off) n.delete(b.index)
+                            else n.add(b.index)
+                            setExcluded(n)
                           }} className="text-xs text-ink-mute hover:text-ink">
                             {off ? 'geri al' : statusLabels[b.beyanname!.status]}
                           </button>

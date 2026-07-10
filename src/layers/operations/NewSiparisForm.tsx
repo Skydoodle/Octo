@@ -14,6 +14,7 @@ export default function NewSiparisForm({ onClose }: Props) {
   const [cariUnvan, setCariUnvan] = useState('')
   const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 10))
   const [teslimTarihi, setTeslimTarihi] = useState(new Date().toISOString().slice(0, 10))
+  const [odemeTarihi, setOdemeTarihi] = useState('')
   const [satirlar, setSatirlar] = useState<SiparisSatiri[]>([])
   const [touched, setTouched] = useState(false)
 
@@ -42,6 +43,7 @@ export default function NewSiparisForm({ onClose }: Props) {
 
   const fakeSiparis: Siparis = {
     id: '_', no: '_', tur, cariId: '', cariUnvan, tarih, teslimTarihi,
+    odemeTarihi: tur === 'alis' && odemeTarihi ? odemeTarihi : undefined,
     durum: 'taslak', satirlar, faturalandi: false,
   }
   const toplam = siparisToplam(fakeSiparis)
@@ -54,7 +56,9 @@ export default function NewSiparisForm({ onClose }: Props) {
       id: 'sip' + Date.now(),
       no: `SIP-${yil}-${String(Date.now()).slice(-4)}`,
       tur, cariId: 'cari-' + Date.now(), cariUnvan: cariUnvan.trim(),
-      tarih, teslimTarihi, durum: 'taslak', satirlar, faturalandi: false,
+      tarih, teslimTarihi,
+      odemeTarihi: tur === 'alis' && odemeTarihi ? odemeTarihi : undefined,
+      durum: 'taslak', satirlar, faturalandi: false,
     }
     addSiparis(s)
     onClose()
@@ -64,7 +68,7 @@ export default function NewSiparisForm({ onClose }: Props) {
 
   return (
     <Modal title="Yeni Sipariş" onClose={onClose} width="720px">
-      <div className="mb-4 grid grid-cols-2 gap-4">
+      <div className={'mb-4 grid gap-4 ' + (tur === 'alis' ? 'grid-cols-3' : 'grid-cols-2')}>
         <div>
           <span className={labelCls}>Sipariş Türü</span>
           <div className="flex gap-2">
@@ -80,6 +84,13 @@ export default function NewSiparisForm({ onClose }: Props) {
           <span className={labelCls}>{tur === 'satis' ? 'Müşteri' : 'Tedarikçi'} <span className="text-crimson">*</span></span>
           <input className={inputCls + (touched && !cariUnvan.trim() ? ' border-crimson' : '')} value={cariUnvan} onChange={e => setCariUnvan(e.target.value)} placeholder="Ünvan" />
         </div>
+        {tur === 'alis' && (
+          <div>
+            <span className={labelCls}>Ödeme Tarihi</span>
+            <input type="date" className={inputCls} value={odemeTarihi} onChange={e => setOdemeTarihi(e.target.value)} />
+            <span className="mt-1 block text-[10px] text-ink-mute">Boşsa nakit projeksiyonuna tarihli çıkış eklenmez.</span>
+          </div>
+        )}
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-4">

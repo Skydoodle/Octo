@@ -6,6 +6,7 @@ import type { Beyanname, BeyannameType, BeyannameStatus, Period } from '../layer
 import { parseTurkishNumber, parseTurkishDate, detectColumnNumberFormat, type NumberFormatHint } from './clean'
 import { normalizeHeader } from './clean'
 import type { BeyannameField, ParsedSheet } from './automapTax'
+import { stableRecordId } from '../shared/utils/stableId'
 
 export interface BuiltTaxRow {
   index: number
@@ -107,7 +108,7 @@ export function buildTaxRows(sheet: ParsedSheet, mapping: BeyannameField[]): Bui
     }
 
     const beyanname: Beyanname | null = errors.length === 0 && type ? {
-      id: 'imp' + Date.now() + '-' + index,
+      id: stableRecordId('imp-tax', [index, type, donem, period, status, matrah, hesaplananVergi, sonTarih]),
       type,
       donem: donem || '2026',
       period,

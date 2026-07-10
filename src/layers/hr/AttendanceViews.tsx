@@ -6,25 +6,8 @@ import {
 } from './hrStore'
 import NewIzinForm from './NewIzinForm'
 import {
-  gunDurumuLabels, izinTuruLabels, izinDurumuLabels, izinBakiyesi,
-  type GunDurumu,
+  izinTuruLabels, izinDurumuLabels, izinBakiyesi,
 } from './attendanceTypes'
-
-const durumRenk: Record<GunDurumu, string> = {
-  tam: 'bg-positive/15 text-positive',
-  yarim: 'bg-positive/10 text-positive',
-  devamsiz: 'bg-crimson/15 text-crimson',
-  yillik_izin: 'bg-warn/15 text-warn',
-  hastalik: 'bg-crimson/10 text-crimson',
-  ucretsiz_izin: 'bg-ink-mute/15 text-ink-mute',
-  resmi_tatil: 'bg-ink-mute/10 text-ink-mute',
-  hafta_tatili: 'bg-surface-2 text-ink-mute',
-}
-
-const kisaDurum: Record<GunDurumu, string> = {
-  tam: 'T', yarim: 'Y', devamsiz: 'D', yillik_izin: 'İ',
-  hastalik: 'R', ucretsiz_izin: 'Ü', resmi_tatil: 'RT', hafta_tatili: '·',
-}
 
 // ── Puantaj tab ──────────────────────────────────────────────────────────
 export function PuantajView({ donem }: { donem: string }) {

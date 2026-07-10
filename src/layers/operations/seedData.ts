@@ -6,12 +6,10 @@
 import type {
   Urun, StokHareketi, Siparis, Sevkiyat, Recete, UretimEmri, Tedarikci,
 } from './types'
+import { addDateOnlyDays, dateOnlyFromLocalDate } from '../../shared/dateOnly'
 
-const bugun = new Date()
-const gunEkle = (n: number) => {
-  const d = new Date(bugun); d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
-}
+const bugun = dateOnlyFromLocalDate(new Date())
+const gunEkle = (n: number) => addDateOnlyDays(bugun, n) ?? bugun
 
 export function seedUrunler(): Urun[] {
   const mk = (
@@ -77,7 +75,7 @@ export function seedSiparisler(urunler: Urun[]): Siparis[] {
     // Açık alış siparişi — gelecek nakit çıkışı → Finans
     {
       id: 'sip2', no: 'SIP-2026-0002', tur: 'alis', cariId: 'c-tedarikci-1',
-      cariUnvan: 'Çelik Tedarik A.Ş.', tarih: gunEkle(-3), teslimTarihi: gunEkle(7),
+      cariUnvan: 'Çelik Tedarik A.Ş.', tarih: gunEkle(-3), teslimTarihi: gunEkle(7), odemeTarihi: gunEkle(14),
       durum: 'onaylandi', faturalandi: false,
       satirlar: [
         { urunId: id('HM-001'), miktar: 1500, birimFiyat: 47, kdvOrani: 20, sevkEdilen: 0 },

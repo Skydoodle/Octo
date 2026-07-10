@@ -47,6 +47,7 @@ import { beyannameLabels } from '../../tax/types'
 import { isDemoMode } from '../../../shared/config'
 import { buBordroDonemi } from '../../hr/hrStore'
 import { acikAlisSiparisYukumlulukleri } from '../../operations/opStore'
+import { lastDayOfFollowingMonth } from '../../../shared/dateOnly'
 
 export interface Obligation {
   date: string
@@ -69,7 +70,7 @@ const demoObligations: Obligation[] = [
 export function getKnownObligations(): Obligation[] {
   const tax = getTaxState()
   const real = tax.beyannameler
-    .filter(b => b.status !== 'odendi' && b.status !== 'gonderildi')
+    .filter(b => b.status !== 'odendi')
     .map(b => ({
       date: b.sonTarih,
       amount: b.hesaplananVergi,
@@ -105,12 +106,16 @@ function getPayrollObligations(): Obligation[] {
     const donem = buBordroDonemi()
     if (donem.bordrolar.length === 0) return []
     const now = new Date()
-    const y = now.getFullYear(), m = now.getMonth() // 0-indexed
-    const maasDate = new Date(y, m + 1, 0).toISOString().slice(0, 10) // last day of month
-    const sgkDate = new Date(y, m + 1, 23).toISOString().slice(0, 10) // 23rd next month
     const obligations: Obligation[] = []
-    if (donem.maasOdemesi > 0) obligations.push({ date: maasDate, amount: donem.maasOdemesi, description: 'Maaş ödemesi (İK)' })
-    if (donem.sgkPrimToplam > 0) obligations.push({ date: sgkDate, amount: donem.sgkPrimToplam, description: 'SGK primi (İK)' })
+    // Salary timing is company-specific and is not projected without a stored
+    // payment date. Standard 4/a SGK timing remains a derived estimate.
+    if (donem.sgkPrimToplam > 0) {
+      obligations.push({
+        date: lastDayOfFollowingMonth(now),
+        amount: donem.sgkPrimToplam,
+        description: 'SGK primi (İK; resmi takvim teyidi gerekli)',
+      })
+    }
     return obligations
   } catch {
     return []

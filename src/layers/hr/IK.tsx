@@ -6,7 +6,7 @@ import NewPersonelForm from './NewPersonelForm'
 import PersonelImport from './PersonelImport'
 import { PuantajView, IzinView } from './AttendanceViews'
 import { brutToNet } from './bordroEngine'
-import { personelEksikAlanlar, personelAlanLabels, sgkDurumuLabels } from './types'
+import { personelEksikAlanlar, sgkDurumuLabels } from './types'
 import { izinBakiyesi } from './attendanceTypes'
 
 const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')

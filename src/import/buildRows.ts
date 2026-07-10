@@ -5,6 +5,7 @@
 import type { Invoice } from '../layers/finance/types'
 import { parseTurkishNumber, parseTurkishDate, parseKdvRate, detectColumnNumberFormat, type NumberFormatHint } from './clean'
 import type { InvoiceField, ParsedSheet } from './automap'
+import { stableRecordId } from '../shared/utils/stableId'
 
 export interface BuiltRow {
   index: number
@@ -127,7 +128,19 @@ export function buildRows(
     }
 
     const invoice: Invoice | null = errors.length === 0 ? {
-      id: 'imp' + Date.now() + '-' + index,
+      id: stableRecordId('imp-invoice', [
+        index,
+        type,
+        contactName,
+        str(r, 'contactTaxId'),
+        issueDate,
+        dueDate,
+        finalAmount,
+        finalVat,
+        finalTotal,
+        status,
+        str(r, 'description'),
+      ]),
       type,
       contactName,
       contactTaxId: str(r, 'contactTaxId'),

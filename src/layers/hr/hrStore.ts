@@ -8,11 +8,13 @@ import { useSyncExternalStore } from 'react'
 import { loadOrSeed, save } from '../../shared/store/persist'
 import { isDemoMode } from '../../shared/config'
 import { bordroHesapla, efektifBrut } from './bordroEngine'
+import { BORDRO_2026 } from './types'
+import { isDateOnly } from '../../shared/dateOnly'
 import type { Personel, Bordro, BordroDonem } from './types'
 import type { Puantaj, IzinTalebi, GunKaydi } from './attendanceTypes'
 import { seedPersonel, seedPuantaj, seedIzinler } from './seedData'
 
-interface IKState {
+export interface IKState {
   personeller: Personel[]
   puantajlar: Puantaj[]
   izinler: IzinTalebi[]
@@ -29,13 +31,13 @@ function initial(): IKState {
   return emptyState
 }
 
-let loaded = loadOrSeed<IKState>(KEY, initial())
+const loaded = loadOrSeed<IKState>(KEY, initial())
 // Migration guard: state persisted before puantaj/izin existed lacks those
 // arrays. Default them so views never call .find/.filter on undefined.
 let state: IKState = {
-  personeller: loaded.personeller ?? [],
-  puantajlar: loaded.puantajlar ?? [],
-  izinler: loaded.izinler ?? [],
+  personeller: Array.isArray(loaded?.personeller) ? loaded.personeller : [],
+  puantajlar: Array.isArray(loaded?.puantajlar) ? loaded.puantajlar : [],
+  izinler: Array.isArray(loaded?.izinler) ? loaded.izinler : [],
 }
 
 const listeners = new Set<() => void>()
@@ -122,19 +124,25 @@ export function kullanilanYillikIzin(personelId: string): number {
 // Run payroll for a given month for all active personnel. Cumulative matrah is
 // approximated as (month index − 1) months of the same gross — a reasonable
 // model for steady salaries; real cumulative would track actual history.
-export function bordroDonemHesapla(donem: string): BordroDonem {
-  const aktifler = state.personeller.filter(p => p.aktif)
+export function bordroDonemHesapla(donem: string, source: IKState = state): BordroDonem {
+  const [year, month] = donem.split('-').map(Number)
+  const periodEnd = Number.isInteger(year) && month >= 1 && month <= 12
+    ? new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+    : null
+  const aktifler = source.personeller.filter(p =>
+    p.aktif && (!periodEnd || !isDateOnly(p.iseGirisTarihi) || p.iseGirisTarihi <= periodEnd),
+  )
   const ayIndex = parseInt(donem.split('-')[1] ?? '1', 10) // 1..12
 
   const bordrolar: Bordro[] = aktifler.map(p => {
-    const sgkM = Math.min(p.brutMaas, p.brutMaas)
-    const aylikMatrah = p.brutMaas - sgkM * 0.15
-    const kumulatifOnce = aylikMatrah * (ayIndex - 1)
     // Attendance adjustment: unpaid days reduce gross, overtime adds.
-    const pz = state.puantajlar.find(x => x.personelId === p.id && x.donem === donem)
+    const pz = source.puantajlar.find(x => x.personelId === p.id && x.donem === donem)
     const effPersonel = pz
       ? { ...p, brutMaas: efektifBrut(p.brutMaas, { ucretsizGun: pz.devamsizGun + pz.ucretsizIzinGun, fazlaMesaiSaat: pz.fazlaMesaiSaat }) }
       : p
+    const sgkMatrah = Math.min(effPersonel.brutMaas, BORDRO_2026.sgkTavan)
+    const aylikMatrah = effPersonel.brutMaas - sgkMatrah * 0.15
+    const kumulatifOnce = aylikMatrah * Math.max(0, ayIndex - 1)
     return bordroHesapla({ personel: effPersonel, donem, kumulatifMatrahOnce: kumulatifOnce })
   })
 
@@ -164,8 +172,7 @@ export function bordroDonemHesapla(donem: string): BordroDonem {
 }
 
 // Current-month payroll, used by the dashboard/orchestrator.
-export function buBordroDonemi(): BordroDonem {
-  const now = new Date()
+export function buBordroDonemi(now = new Date(), source: IKState = state): BordroDonem {
   const donem = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  return bordroDonemHesapla(donem)
+  return bordroDonemHesapla(donem, source)
 }

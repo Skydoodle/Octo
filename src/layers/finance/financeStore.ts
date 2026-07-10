@@ -9,9 +9,10 @@ import { isDemoMode } from '../../shared/config'
 import { postInvoiceCreated, postInvoiceSettled, postStandaloneTransaction, postDemoLedger } from './muhasebe/bridge'
 import { clearLedger } from './muhasebe/ledgerStore'
 import { seedCarilerFromInvoices, clearCari } from './cari/cariStore'
+import { setSiparisFaturalandi } from '../operations/opStore'
 import type { BankAccount, Invoice, Transaction } from './types'
 
-interface FinanceState {
+export interface FinanceState {
   accounts: BankAccount[]
   invoices: Invoice[]
   transactions: Transaction[]
@@ -26,7 +27,12 @@ const seedState: FinanceState = {
   transactions: seedTransactions,
 }
 
-let state: FinanceState = loadOrSeed<FinanceState>(KEY, isDemoMode() ? seedState : emptyState)
+const loaded = loadOrSeed<FinanceState>(KEY, isDemoMode() ? seedState : emptyState)
+let state: FinanceState = {
+  accounts: Array.isArray(loaded?.accounts) ? loaded.accounts : [],
+  invoices: Array.isArray(loaded?.invoices) ? loaded.invoices : [],
+  transactions: Array.isArray(loaded?.transactions) ? loaded.transactions : [],
+}
 
 const listeners = new Set<() => void>()
 
@@ -46,7 +52,8 @@ function getSnapshot() {
 
 // ---- Actions ----
 
-export function addInvoice(inv: Invoice) {
+export function addInvoice(inv: Invoice): boolean {
+  if (state.invoices.some(existing => existing.id === inv.id)) return false
   // If the invoice is entered as already-paid, settle cash atomically in the
   // same update so books never show a paid invoice without a matching movement.
   if (inv.status === 'paid') {
@@ -62,10 +69,12 @@ export function addInvoice(inv: Invoice) {
     state = { ...state, invoices: [inv, ...state.invoices] }
   }
   emit()
+  if (inv.sourceOrderId) setSiparisFaturalandi(inv.sourceOrderId, inv.id, true)
   // Post to the general ledger: the accrual entry always, plus the settlement
   // entry if the invoice was entered already-paid.
   postInvoiceCreated(inv)
   if (inv.status === 'paid') postInvoiceSettled(inv)
+  return true
 }
 
 // Mark an existing invoice paid AND move the cash: one atomic update covering
@@ -123,11 +132,15 @@ function applyToBalance(accounts: BankAccount[], accountId: string, delta: numbe
 }
 
 export function updateInvoiceStatus(id: string, status: Invoice['status']) {
+  const current = state.invoices.find(invoice => invoice.id === id)
   state = {
     ...state,
     invoices: state.invoices.map(i => (i.id === id ? { ...i, status } : i)),
   }
   emit()
+  if (current?.sourceOrderId && status === 'cancelled') {
+    setSiparisFaturalandi(current.sourceOrderId, current.id, false)
+  }
 }
 
 export function addTransaction(tx: Transaction) {

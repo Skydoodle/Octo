@@ -8,7 +8,7 @@ import { useSyncExternalStore } from 'react'
 import { loadOrSeed, save } from '../../shared/store/persist'
 import { isDemoMode } from '../../shared/config'
 import {
-  hareketGirisMi, siparisToplam, siparisGecisleri,
+  hareketGirisMi, siparisKalanToplam, siparisGecisleri,
   type Urun, type StokHareketi, type Siparis, type SiparisDurumu,
   type Sevkiyat, type Recete, type UretimEmri, type Tedarikci,
 } from './types'
@@ -18,7 +18,7 @@ import {
 } from './seedData'
 import { urunTahmini, type StokTahmin } from './forecast'
 
-interface OpState {
+export interface OpState {
   urunler: Urun[]
   hareketler: StokHareketi[]
   siparisler: Siparis[]
@@ -53,13 +53,13 @@ function initial(): OpState {
 const loaded = loadOrSeed<OpState>(KEY, initial())
 // Migration guard: eksik dizileri default'la (eski persisted state çökmesin).
 let state: OpState = {
-  urunler: loaded.urunler ?? [],
-  hareketler: loaded.hareketler ?? [],
-  siparisler: loaded.siparisler ?? [],
-  sevkiyatlar: loaded.sevkiyatlar ?? [],
-  receteler: loaded.receteler ?? [],
-  uretimler: loaded.uretimler ?? [],
-  tedarikciler: loaded.tedarikciler ?? [],
+  urunler: Array.isArray(loaded?.urunler) ? loaded.urunler : [],
+  hareketler: Array.isArray(loaded?.hareketler) ? loaded.hareketler : [],
+  siparisler: Array.isArray(loaded?.siparisler) ? loaded.siparisler : [],
+  sevkiyatlar: Array.isArray(loaded?.sevkiyatlar) ? loaded.sevkiyatlar : [],
+  receteler: Array.isArray(loaded?.receteler) ? loaded.receteler : [],
+  uretimler: Array.isArray(loaded?.uretimler) ? loaded.uretimler : [],
+  tedarikciler: Array.isArray(loaded?.tedarikciler) ? loaded.tedarikciler : [],
 }
 
 const listeners = new Set<() => void>()
@@ -82,15 +82,15 @@ export function deleteUrun(id: string) { state = { ...state, urunler: state.urun
 export function addHareket(h: StokHareketi) { state = { ...state, hareketler: [h, ...state.hareketler] }; emit() }
 
 // Bir ürünün mevcut stok miktarı (tüm hareketlerden türetilir).
-export function stokMiktari(urunId: string): number {
-  return state.hareketler
+export function stokMiktari(urunId: string, source: OpState = state): number {
+  return source.hareketler
     .filter(h => h.urunId === urunId)
     .reduce((sum, h) => sum + (hareketGirisMi[h.tip] ? h.miktar : -h.miktar), 0)
 }
 
 // Ortalama stok maliyeti (basit ağırlıklı; giriş hareketlerinden).
-export function stokMaliyeti(urunId: string): number {
-  const girisler = state.hareketler.filter(h => h.urunId === urunId && hareketGirisMi[h.tip] && h.miktar > 0)
+export function stokMaliyeti(urunId: string, source: OpState = state): number {
+  const girisler = source.hareketler.filter(h => h.urunId === urunId && hareketGirisMi[h.tip] && h.miktar > 0)
   if (girisler.length === 0) return 0
   const toplamMiktar = girisler.reduce((s, h) => s + h.miktar, 0)
   const toplamDeger = girisler.reduce((s, h) => s + h.miktar * h.birimMaliyet, 0)
@@ -106,8 +106,14 @@ export function setSiparisDurum(id: string, durum: SiparisDurumu): boolean {
   state = { ...state, siparisler: state.siparisler.map(x => x.id === id ? { ...x, durum } : x) }
   emit(); return true
 }
-export function setSiparisFaturalandi(id: string) {
-  state = { ...state, siparisler: state.siparisler.map(x => x.id === id ? { ...x, faturalandi: true } : x) }; emit()
+export function setSiparisFaturalandi(id: string, faturaId?: string, value = true) {
+  state = {
+    ...state,
+    siparisler: state.siparisler.map(order => order.id === id
+      ? { ...order, faturalandi: value, faturaId: value ? faturaId : undefined }
+      : order),
+  }
+  emit()
 }
 export function deleteSiparis(id: string) { state = { ...state, siparisler: state.siparisler.filter(s => s.id !== id) }; emit() }
 
@@ -170,6 +176,7 @@ export function kritikStoklar(): KritikStok[] {
 
 // Açık alış siparişleri → gelecek nakit çıkışı (Finans projeksiyonu için).
 export interface AlisSiparisYukumluluk {
+  orderId: string
   date: string
   amount: number
   description: string
@@ -177,38 +184,60 @@ export interface AlisSiparisYukumluluk {
 
 export function acikAlisSiparisYukumlulukleri(): AlisSiparisYukumluluk[] {
   return state.siparisler
-    .filter(s => s.tur === 'alis' && (s.durum === 'onaylandi' || s.durum === 'kismi') && !s.faturalandi)
+    .filter(s => s.tur === 'alis' && (s.durum === 'onaylandi' || s.durum === 'kismi') && !s.faturalandi && Boolean(s.odemeTarihi))
     .map(s => ({
-      date: s.teslimTarihi,
-      amount: siparisToplam(s).genelToplam,
+      orderId: s.id,
+      date: s.odemeTarihi as string,
+      amount: siparisKalanToplam(s).genelToplam,
       description: `Alış siparişi ${s.no} (${s.cariUnvan})`,
     }))
 }
 
 // Devam eden üretim emirleri için karşılanamayan hammadde ihtiyacı.
 export interface UretimEksikMalzeme {
+  uretimId: string
   uretimNo: string
+  hedefTarih: string
+  receteId: string
+  urunId: string
   urunAd: string
   gereken: number
   mevcut: number
   eksik: number
 }
 
-export function uretimEksikMalzemeler(): UretimEksikMalzeme[] {
+export function uretimEksikMalzemeler(source: OpState = state): UretimEksikMalzeme[] {
   const out: UretimEksikMalzeme[] = []
-  const aktifUretimler = state.uretimler.filter(u => u.durum === 'planlandi' || u.durum === 'devam')
+  const aktifUretimler = source.uretimler
+    .filter(u => u.durum === 'planlandi' || u.durum === 'devam')
+    .sort((a, b) => a.hedefTarih.localeCompare(b.hedefTarih))
+  const kalanStok = new Map(source.urunler.map(product => [product.id, stokMiktari(product.id, source)]))
   for (const ue of aktifUretimler) {
-    const recete = state.receteler.find(r => r.id === ue.receteId)
+    const recete = source.receteler.find(r => r.id === ue.receteId)
     if (!recete) continue
-    for (const b of recete.bilesenler) {
-      const gereken = b.miktar * ue.miktar
-      const mevcut = stokMiktari(b.urunId)
-      if (mevcut < gereken) {
-        const urun = state.urunler.find(u => u.id === b.urunId)
+    const requirements = new Map<string, number>()
+    for (const component of recete.bilesenler) {
+      requirements.set(
+        component.urunId,
+        (requirements.get(component.urunId) ?? 0) + component.miktar * ue.miktar,
+      )
+    }
+    for (const [urunId, gereken] of requirements) {
+      const mevcut = Math.max(0, kalanStok.get(urunId) ?? 0)
+      const eksik = Math.max(0, gereken - mevcut)
+      kalanStok.set(urunId, mevcut - gereken)
+      if (eksik > 0) {
+        const urun = source.urunler.find(u => u.id === urunId)
         out.push({
+          uretimId: ue.id,
           uretimNo: ue.no,
-          urunAd: urun?.ad ?? b.urunId,
-          gereken, mevcut, eksik: gereken - mevcut,
+          hedefTarih: ue.hedefTarih,
+          receteId: recete.id,
+          urunId,
+          urunAd: urun?.ad ?? urunId,
+          gereken,
+          mevcut,
+          eksik,
         })
       }
     }
@@ -223,16 +252,16 @@ export function toplamStokDegeri(): number {
 
 // ── Stok Tahmini (Katman 1) ─────────────────────────────────────────────────
 // Bir ürünün tahmini (o ürünün tüm hareketlerinden).
-export function urunStokTahmini(urunId: string): StokTahmin | null {
-  const urun = state.urunler.find(u => u.id === urunId)
+export function urunStokTahmini(urunId: string, now = new Date(), source: OpState = state): StokTahmin | null {
+  const urun = source.urunler.find(u => u.id === urunId)
   if (!urun) return null
-  const har = state.hareketler.filter(h => h.urunId === urunId)
-  return urunTahmini(urun, har)
+  const har = source.hareketler.filter(h => h.urunId === urunId)
+  return urunTahmini(urun, har, now)
 }
 
 // Tüm aktif (hizmet olmayan) ürünlerin tahmini.
-export function tumStokTahminleri(): StokTahmin[] {
-  return state.urunler
+export function tumStokTahminleri(now = new Date(), source: OpState = state): StokTahmin[] {
+  return source.urunler
     .filter(u => u.aktif && u.tip !== 'hizmet')
-    .map(u => urunTahmini(u, state.hareketler.filter(h => h.urunId === u.id)))
+    .map(u => urunTahmini(u, source.hareketler.filter(h => h.urunId === u.id), now))
 }

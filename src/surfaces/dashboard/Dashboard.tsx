@@ -7,6 +7,8 @@ import type { Aciliyet } from '../../orchestrator/orchestrator'
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { useFinanceStore } from '../../layers/finance/financeStore'
 import { useTaxStore } from '../../layers/tax/taxStore'
+import { useIKStore } from '../../layers/hr/hrStore'
+import { useOpStore } from '../../layers/operations/opStore'
 import { runAllDetectors } from '../../shared/insights/detectors'
 import InsightCard from './components/InsightCard'
 import { calculateCashPosition, calculateRunway, calculateMonthlyExpenses } from '../../layers/finance/logic/cashPosition'
@@ -30,6 +32,8 @@ export default function Dashboard() {
   const { briefing, loading, regenerate } = useBriefing()
   const { accounts, invoices, transactions } = useFinanceStore()
   const tax = useTaxStore() // subscribe so audit/horizon re-derive when tax data changes
+  const hr = useIKStore()
+  const operations = useOpStore()
   const insights = runAllDetectors()
 
   const cash = calculateCashPosition(accounts)
@@ -53,17 +57,28 @@ export default function Dashboard() {
   const last = trend[trend.length - 1]
   const prev = trend[trend.length - 2]
   const revenueDelta = momDelta(last?.gelir ?? 0, prev?.gelir ?? 0)
-  const expenseDelta = momDelta(last?.gider ?? 0, prev?.gider ?? 0)
   const monthlyIncome = last?.gelir ?? 0
 
   const kpis = [
-    { label: 'Nakit Pozisyonu', value: fmt(cash.netCash), delta: null as number | null, hint: runway >= 999 ? 'pist hesaplanamadı' : runway + ' ay pist', path: '/dashboard/finans' },
+    {
+      label: 'TRY Nakit Pozisyonu',
+      value: fmt(cash.netCash),
+      delta: null as number | null,
+      hint: cash.conversionMissing ? 'döviz bakiyeleri kura çevrilmedi' : runway >= 999 ? 'pist hesaplanamadı' : runway + ' ay pist',
+      path: '/dashboard/finans',
+    },
     { label: 'Toplam Alacak', value: fmt(totalReceivables), delta: null as number | null, hint: fmt(overdueReceivables) + ' gecikmiş', path: '/dashboard/finans' },
     { label: 'Toplam Borç', value: fmt(totalPayables), delta: null as number | null, hint: fmt(upcomingPayables) + ' 30 günde', path: '/dashboard/finans' },
     { label: 'Bu Ay Ciro', value: fmt(monthlyIncome), delta: revenueDelta, hint: 'bu ay tahsilat', path: '/dashboard/finans' },
   ]
 
-  const hasAnyData = hasFinanceData || tax.beyannameler.length > 0 || tax.compliance.length > 0
+  const hasAnyData = hasFinanceData ||
+    tax.beyannameler.length > 0 ||
+    tax.compliance.length > 0 ||
+    hr.personeller.length > 0 ||
+    operations.urunler.length > 0 ||
+    operations.siparisler.length > 0 ||
+    operations.uretimler.length > 0
 
   return (
     <div className="space-y-5">
@@ -96,7 +111,7 @@ export default function Dashboard() {
           {loading ? (
             <p className="text-[0.95rem] italic leading-relaxed text-ink-mute">Yapay zeka brifing hazırlıyor...</p>
           ) : (!briefing.ozet && briefing.kollar.length === 0) ? (
-            <EmptyState compact title="Brifing için veri yok" hint="Finans ve vergi verisi girildiğinde günlük brifing otomatik oluşturulur." />
+            <EmptyState compact title="Brifing için veri yok" hint="Finans, vergi, İK veya operasyon verisi girildiğinde brifing otomatik oluşturulur." />
           ) : (
             <>
               <p className="text-[0.95rem] leading-relaxed text-ink-soft">{briefing.ozet}</p>

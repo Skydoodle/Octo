@@ -3,7 +3,7 @@ import { Card, Label } from '../../../shared/utils/ui'
 import EmptyState from '../../../shared/utils/EmptyState'
 import { useCariStore, cariBakiye, deleteCari } from '../cari/cariStore'
 import NewCariForm from '../cari/NewCariForm'
-import { eksikAlanlar, cariAlanLabels, PERAKENDE_CARI_ID, type Cari } from '../cari/types'
+import { eksikAlanlar, cariAlanLabels, type Cari } from '../cari/types'
 
 const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
 

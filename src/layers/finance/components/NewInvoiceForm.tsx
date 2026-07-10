@@ -5,6 +5,7 @@ import { tevkifatOranlari, tevkifatKategorileri, type TevkifatOrani } from '../.
 import { useCariStore, ensurePerakendeCari } from '../cari/cariStore'
 import NewCariForm from '../cari/NewCariForm'
 import { PERAKENDE_CARI_ID, type Cari } from '../cari/types'
+import { useOpStore } from '../../operations/opStore'
 
 interface LineItem {
   id: string
@@ -23,6 +24,7 @@ const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-
 
 export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const { cariler } = useCariStore()
+  const { siparisler } = useOpStore()
   const [type, setType] = useState<'sales' | 'purchase'>('sales')
   const [kdvDurumu, setKdvDurumu] = useState<'normal' | 'tevkifat' | 'istisna'>('normal')
   const [tevkifatOrani, setTevkifatOrani] = useState<TevkifatOrani>('9/10')
@@ -32,6 +34,8 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const [showNewCari, setShowNewCari] = useState(false)
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState('')
+  const [sourceOrderId, setSourceOrderId] = useState('')
+  const [invoiceId] = useState(() => 'inv' + Date.now())
 
   // Pick a registered cari: auto-fills name + VKN, locks the fields.
   const selectCari = (c: Cari) => {
@@ -73,7 +77,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const buildInvoice = (status: Invoice['status']): Invoice | null => {
     if (!selectedCariId || !contactName || !dueDate || lineItems.some(l => !l.description)) return null
     return {
-      id: 'inv' + Date.now(),
+      id: invoiceId,
       type,
       contactName,
       contactTaxId,
@@ -86,6 +90,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       dueDate,
       status,
       description: lineItems[0]?.description || '',
+      sourceOrderId: type === 'purchase' && sourceOrderId ? sourceOrderId : undefined,
       kdvDurumu,
       tevkifatOrani: kdvDurumu === 'tevkifat' ? tevkifatOrani : undefined,
     }
@@ -166,6 +171,31 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
           </div>
         )}
       </div>
+
+      {/* Dates */}
+      {type === 'purchase' && (
+        <div className="mb-5">
+          <span className="label mb-1.5 block text-ink-mute">Bağlı Alış Siparişi</span>
+          <select
+            className={inputCls + ' cursor-pointer'}
+            value={sourceOrderId}
+            onChange={event => {
+              const orderId = event.target.value
+              setSourceOrderId(orderId)
+              const order = siparisler.find(item => item.id === orderId)
+              if (order?.odemeTarihi) setDueDate(order.odemeTarihi)
+            }}
+          >
+            <option value="">Bağlantı yok</option>
+            {siparisler
+              .filter(order => order.tur === 'alis' && !order.faturalandi && (order.durum === 'onaylandi' || order.durum === 'kismi'))
+              .map(order => (
+                <option key={order.id} value={order.id}>{order.no} — {order.cariUnvan}</option>
+              ))}
+          </select>
+          <p className="mt-1.5 text-xs text-ink-mute">Bağlanan sipariş ayrı bir nakit yükümlülüğü olarak tekrar sayılmaz.</p>
+        </div>
+      )}
 
       {/* Dates */}
       <div className="mb-6 grid grid-cols-2 gap-4">

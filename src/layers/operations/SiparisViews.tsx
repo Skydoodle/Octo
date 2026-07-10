@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Label } from '../../shared/utils/ui'
+import { Card } from '../../shared/utils/ui'
 import EmptyState from '../../shared/utils/EmptyState'
 import {
   useOpStore, setSiparisDurum, deleteSiparis, acikAlisSiparisYukumlulukleri,
@@ -21,7 +21,7 @@ const durumRenk: Record<SiparisDurumu, string> = {
 }
 
 export function SiparisView() {
-  const { siparisler, urunler } = useOpStore()
+  const { siparisler } = useOpStore()
   const [showForm, setShowForm] = useState(false)
   const [tur, setTur] = useState<'hepsi' | 'satis' | 'alis'>('hepsi')
 

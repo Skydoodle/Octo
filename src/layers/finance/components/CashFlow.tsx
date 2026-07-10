@@ -11,17 +11,28 @@ import {
   const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
   const fmtK = (n: number) => n >= 1000000 ? '₺' + (n/1000000).toFixed(1) + 'M' : '₺' + (n/1000).toFixed(0) + 'K'
   
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface CashTooltipItem {
+    payload?: { balance?: number; inflow?: number; outflow?: number }
+  }
+  interface CashTooltipProps {
+    active?: boolean
+    payload?: CashTooltipItem[]
+    label?: string
+  }
+  const CustomTooltip = ({ active, payload, label }: CashTooltipProps) => {
     if (!active || !payload?.length) return null
     const d = payload[0]?.payload
+    const balance = d?.balance ?? 0
+    const inflow = d?.inflow ?? 0
+    const outflow = d?.outflow ?? 0
     return (
       <div style={{ background: 'rgb(var(--ink))', border: 'none', borderRadius: '6px', padding: '12px 16px', minWidth: '180px' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', marginBottom: '8px', letterSpacing: '0.08em' }}>{label}</div>
-        <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 500, color: d?.balance > 100000 ? 'rgb(var(--positive))' : d?.balance > 50000 ? 'rgb(var(--warn))' : 'rgb(var(--crimson))', marginBottom: '8px' }}>
-          {fmt(d?.balance || 0)}
+        <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 500, color: balance > 100000 ? 'rgb(var(--positive))' : balance > 50000 ? 'rgb(var(--warn))' : 'rgb(var(--crimson))', marginBottom: '8px' }}>
+          {fmt(balance)}
         </div>
-        {d?.inflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--positive))', marginBottom: '3px' }}>+{fmt(d.inflow)} giriş</div>}
-        {d?.outflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--crimson))' }}>-{fmt(d.outflow)} çıkış</div>}
+        {inflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--positive))', marginBottom: '3px' }}>+{fmt(inflow)} giriş</div>}
+        {outflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--crimson))' }}>-{fmt(outflow)} çıkış</div>}
       </div>
     )
   }
