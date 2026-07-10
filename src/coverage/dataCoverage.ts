@@ -51,7 +51,7 @@ function financeCoverage(
     return {
       domain: 'finance', label: 'Finans', status: 'missing',
       explanation: 'Finans verisi bulunmuyor. Nakit durumu ve açık faturalar henüz değerlendirilemiyor.',
-      missingActions: ['En az bir banka veya kasa bakiyesi ekle.'],
+      missingActions: ['En az bir banka veya kasa bakiyesi ekleyin.'],
       freshness: freshness.finance,
       availableCapabilities: [],
       blockedCapabilities: ['Nakit görünümü', 'Likidite değerlendirmesi', 'Açık fatura takibi'],
@@ -68,9 +68,9 @@ function financeCoverage(
     openInvoice(invoice.status) && invoice.currency !== settings.baseCurrency,
   )
   const actions: string[] = []
-  if (validBaseAccounts.length === 0) actions.push(`${settings.baseCurrency} banka veya kasa bakiyesi ekle.`)
-  if (invalidOpenInvoices.length > 0) actions.push(`${invalidOpenInvoices.length} açık faturanın tutar veya vade tarihini düzelt.`)
-  if (foreignRecords.length > 0) actions.push('Dövizli yükümlülükler için tarihli kur kaynağı ekle.')
+  if (validBaseAccounts.length === 0) actions.push(`${settings.baseCurrency} banka veya kasa bakiyesi ekleyin.`)
+  if (invalidOpenInvoices.length > 0) actions.push(`${invalidOpenInvoices.length} açık faturanın tutar veya vade tarihini düzeltin.`)
+  if (foreignRecords.length > 0) actions.push('Dövizli yükümlülükler için tarihli kur kaynağı ekleyin.')
 
   const ready = actions.length === 0
   return {
@@ -106,7 +106,7 @@ function taxCoverage(
     return {
       domain: 'tax', label: 'Vergi', status: 'missing',
       explanation: 'Aktif beyanname kaydı bulunmuyor. Vergi takvimi henüz değerlendirilemiyor.',
-      missingActions: ['Aktif beyanname ve tahakkuk kayıtlarını ekle.'],
+      missingActions: ['Aktif beyanname ve tahakkuk kayıtlarını ekleyin.'],
       freshness: freshness.tax,
       availableCapabilities: [],
       blockedCapabilities: ['Vergi ödeme takvimi', 'Beyanname son tarihleri'],
@@ -118,8 +118,8 @@ function taxCoverage(
     !isDateOnly(declaration.sonTarih) || !Number.isFinite(declaration.hesaplananVergi) || declaration.hesaplananVergi < 0,
   )
   const actions: string[] = []
-  if (active.length === 0) actions.push('Aktif beyanname veya tahakkuk kaydı ekle.')
-  if (invalid.length > 0) actions.push(`${invalid.length} beyannamenin tutar veya son tarihini düzelt.`)
+  if (active.length === 0) actions.push('Aktif beyanname veya tahakkuk kaydı ekleyin.')
+  if (invalid.length > 0) actions.push(`${invalid.length} beyannamenin tutar veya son tarihini düzeltin.`)
   const ready = actions.length === 0
   return {
     domain: 'tax', label: 'Vergi', status: ready ? 'ready' : 'partial',
@@ -149,7 +149,7 @@ function hrCoverage(
     return {
       domain: 'hr', label: 'İK', status: 'missing',
       explanation: 'Aktif personel kaydı bulunmuyor. Bordro yükümlülükleri henüz değerlendirilemiyor.',
-      missingActions: ['Aktif personel kayıtlarını ekle.'],
+      missingActions: ['Aktif personel kayıtlarını ekleyin.'],
       freshness: `${freshness.hr} · ayarlar: ${freshness.settings}`,
       availableCapabilities: [],
       blockedCapabilities: ['Bordro hesabı', 'Maaş ödeme takvimi', 'SGK tahmini'],
@@ -163,9 +163,9 @@ function hrCoverage(
     !hr.puantajlar.some(attendance => attendance.personelId === person.id && attendance.donem === period),
   )
   const actions: string[] = []
-  if (!paymentDate) actions.push('Maaş ödeme kuralını belirle.')
-  if (invalidSalary.length > 0) actions.push(`${invalidSalary.length} personelin brüt ücretini düzelt.`)
-  if (missingAttendance.length > 0) actions.push(`${missingAttendance.length} personelin ${period} puantajını ekle.`)
+  if (!paymentDate) actions.push('Maaş ödeme kuralını belirleyin.')
+  if (invalidSalary.length > 0) actions.push(`${invalidSalary.length} personelin brüt ücretini düzeltin.`)
+  if (missingAttendance.length > 0) actions.push(`${missingAttendance.length} personelin ${period} puantajını ekleyin.`)
   const ready = actions.length === 0
   return {
     domain: 'hr', label: 'İK', status: ready ? 'ready' : 'partial',
@@ -200,7 +200,7 @@ function operationsCoverage(
     return {
       domain: 'operations', label: 'Operasyon', status: 'missing',
       explanation: 'Operasyon verisi bulunmuyor. Sipariş ve stok yükümlülükleri henüz değerlendirilemiyor.',
-      missingActions: ['Sipariş veya stok kayıtlarını ekle.'],
+      missingActions: ['Sipariş veya stok kayıtlarını ekleyin.'],
       freshness: freshness.operations,
       availableCapabilities: [],
       blockedCapabilities: ['Alış siparişi ödeme takvimi', 'Stok görünümü'],
@@ -221,12 +221,12 @@ function operationsCoverage(
     product.aktif && product.tip !== 'hizmet' && !operations.hareketler.some(movement => movement.urunId === product.id),
   )
   const actions: string[] = []
-  if (missingDates.length > 0) actions.push(`${missingDates.length} alış siparişine ödeme tarihi ekle.`)
+  if (missingDates.length > 0) actions.push(`${missingDates.length} alış siparişine ödeme tarihi ekleyin.`)
   if (invalidLinks.length + orphanInvoiceLinks.length > 0) {
-    actions.push(`${invalidLinks.length + orphanInvoiceLinks.length} sipariş-fatura bağlantısını doğrula.`)
+    actions.push(`${invalidLinks.length + orphanInvoiceLinks.length} sipariş-fatura bağlantısını doğrulayın.`)
   }
-  if (foreignOrders.length > 0) actions.push('Dövizli alış siparişleri için tarihli kur kaynağı ekle.')
-  if (productsWithoutMovement.length > 0) actions.push(`${productsWithoutMovement.length} aktif ürün için başlangıç stok hareketi ekle.`)
+  if (foreignOrders.length > 0) actions.push('Dövizli alış siparişleri için tarihli kur kaynağı ekleyin.')
+  if (productsWithoutMovement.length > 0) actions.push(`${productsWithoutMovement.length} aktif ürün için başlangıç stok hareketi ekleyin.`)
   const ready = actions.length === 0
   return {
     domain: 'operations', label: 'Operasyon', status: ready ? 'ready' : 'partial',

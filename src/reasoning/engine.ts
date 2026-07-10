@@ -146,7 +146,7 @@ function detectLiquidityDataGaps(
     freshness: freshnessFor(domains),
     missingData: missing,
     rule: `Likidite sonucu için doğrulanmış ${baseCurrency} nakit bakiyesi, geçerli bağlantılar ve tarihli yükümlülükler gerekir.`,
-    recommendation: `Eksik ${baseCurrency} hesap bakiyesini, ödeme tarihlerini ve sipariş-fatura bağlantılarını kaynağından doğrula.`,
+    recommendation: `Eksik ${baseCurrency} hesap bakiyesini, ödeme tarihlerini ve sipariş-fatura bağlantılarını kaynağından doğrulayın.`,
     owner: 'Finans',
   }]
 }
@@ -240,8 +240,8 @@ function detectLiquidityWindows(
       missingData,
       rule: `Farklı iş alanlarından iki veya daha fazla ${baseCurrency} nakit çıkışı 7 günlük pencerede çakıştığında, bugünden pencere sonuna kadarki bütün tarihli ${baseCurrency} hareketler birlikte hesaplanır.`,
       recommendation: after < 0
-        ? 'Teyit edilmiş ödeme ve tahsilat tarihlerini birlikte yeniden planla; değiştirilebilen kayıtları sorumlularıyla netleştir.'
-        : 'Ödeme sırasını ve tahsilat tarihlerini pencere başlamadan teyit et; hesaplanan nakit tamponunu koru.',
+        ? 'Teyit edilmiş ödeme ve tahsilat tarihlerini birlikte yeniden planlayın; değiştirilebilen kayıtları sorumlularıyla netleştirin.'
+        : 'Ödeme sırasını ve tahsilat tarihlerini pencere başlamadan teyit edin; hesaplanan nakit tamponunu koruyun.',
       owner: 'Patron + Finans + Mali Müşavir',
     })
   }
@@ -296,8 +296,8 @@ function detectStockDemandGaps(signals: ReasoningSignal[]): ReasoningCase[] {
       ],
       rule: 'Açık satış siparişi miktarı aynı ürünün mevcut stokuyla doğrudan, varsa tahmini tükenme ufkuyla ayrıca karşılaştırılır.',
       recommendation: shortage > 0
-        ? 'Eksik miktarı stok hareketleriyle teyit et; uygun tedarik veya üretim planını sorumlusuyla oluştur.'
-        : 'Yeniden sipariş ihtiyacını teyit et ve açık satış siparişi için stok rezervini belirle.',
+        ? 'Eksik miktarı stok hareketleriyle teyit edin; uygun tedarik veya üretim planını sorumlusuyla oluşturun.'
+        : 'Yeniden sipariş ihtiyacını teyit edin ve açık satış siparişi için stok rezervini belirleyin.',
       owner: 'Operasyon + Satış',
     })
   }
@@ -369,7 +369,7 @@ function detectProductionFundingPressure(
         'Açık alış siparişleri üretim malzeme ihtiyacına ürün bazında rezerve edilmemiştir.',
       ],
       rule: 'Üretim hedef tarihine kadar gereken eksik malzeme maliyeti, aynı tarihe kadarki kayıtlı TRY giriş ve yükümlülüklerle birlikte test edilir.',
-      recommendation: 'Eksik miktarı, hedef tarihi ve tedarik fiyatını teyit et; finansman planını satın alma kararıyla birlikte güncelle.',
+      recommendation: 'Eksik miktarı, hedef tarihi ve tedarik fiyatını teyit edin; finansman planını satın alma kararıyla birlikte güncelleyin.',
       owner: 'Operasyon + Finans',
     })
   }
@@ -404,7 +404,7 @@ function detectForeignCurrencyDataGap(
     freshness: freshnessFor(domains),
     missingData: [`${foreignCurrencies.join(', ')} için işlem tarihine bağlı, kaynaklı döviz kuru bulunmuyor.`],
     rule: `Yabancı para tutarları, tarihli ve kaynaklı kur olmadan ${baseCurrency} likiditesine çevrilmez.`,
-    recommendation: 'Dövizli kayıtların tarihini doğrula ve kullanılacak tarihli kur kaynağını ekle.',
+    recommendation: 'Dövizli kayıtların tarihini doğrulayın ve kullanılacak tarihli kur kaynağını ekleyin.',
     owner: 'Finans',
   }]
 }
@@ -436,7 +436,7 @@ function detectOverdueReceivables(signals: ReasoningSignal[], now: Date): Reason
       freshness: freshnessFor(['finance']),
       missingData: ['Müşteri görüşmeleri, ödeme taahhütleri ve tahsilat olasılıkları yapılandırılmış değildir.'],
       rule: 'Vadesi geçmiş alacakların aynı para birimindeki toplam açık alacak içindeki yoğunluğu izlenir.',
-      recommendation: 'En büyük gecikmiş alacaktan başlayarak tahsilat durumunu doğrula ve teyit edilmiş ödeme sözünü tarihli kayıt olarak ekle.',
+      recommendation: 'En büyük gecikmiş alacaktan başlayarak tahsilat durumunu doğrulayın ve teyit edilmiş ödeme sözünü tarihli kayıt olarak ekleyin.',
       owner: 'Finans + Satış',
     })
   }
@@ -466,7 +466,7 @@ function detectComplianceRisks(signals: ReasoningSignal[]): ReasoningCase[] {
     freshness: freshnessFor(['tax']),
     missingData,
     rule: 'Eksik veya riskli işaretlenen uyumluluk alanları birlikte raporlanır; yalnızca geçerli sayısal ağırlıklar toplanır.',
-    recommendation: 'Eksik ve riskli alanların kanıt kayıtlarını gözden geçir; sorumluları mali müşavirinle netleştir.',
+    recommendation: 'Eksik ve riskli alanların kanıt kayıtlarını gözden geçirin; sorumluları mali müşavirinizle netleştirin.',
     owner: 'Mali Müşavir',
   }]
 }

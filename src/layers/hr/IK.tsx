@@ -116,54 +116,79 @@ export default function IK() {
 }
 
 function BordroView({ donem }: { donem: string }) {
-  const { personeller } = useIKStore()
-  if (personeller.filter(p => p.aktif).length === 0) {
+  const { personeller, puantajlar } = useIKStore()
+  const active = personeller.filter(p => p.aktif)
+  if (active.length === 0) {
     return <Card className="p-6"><EmptyState title="Bordro için personel gerekli" hint="Personel ekleyince aylık bordro burada hesaplanır." /></Card>
   }
 
   const d = bordroDonemHesapla(donem)
+  const missingAttendance = active.filter(person =>
+    !puantajlar.some(attendance => attendance.personelId === person.id && attendance.donem === donem),
+  )
+  const missingPaymentDetails = active.filter(person => personelEksikAlanlar(person).length > 0)
 
   return (
-    <div className="space-y-5">
-      {/* Cross-arm outputs — the whole point of İK not being a silo */}
-      <div>
-        <Label>Dönem Özeti — {donem}</Label>
-        <div className="mt-3 grid grid-cols-4 gap-3">
+    <div className="space-y-7">
+      <header>
+        <div className="label text-crimson">Bordro dönemi</div>
+        <h2 className="mt-1 font-display text-3xl font-semibold text-ink">{donem}</h2>
+        <p className="mt-1 text-sm text-ink-mute">{d.bordrolar.length} aktif çalışan için hesaplandı.</p>
+      </header>
+
+      <section aria-labelledby="payroll-summary-title">
+        <h3 id="payroll-summary-title"><Label>Özet</Label></h3>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card className="p-4">
-            <div className="label text-ink-mute">Toplam Net Maaş</div>
-            <div className="mt-1 font-mono text-lg text-positive">{fmt(d.toplamNet)}</div>
-            <div className="mt-1 text-xs text-ink-mute">→ Finans (nakit çıkışı)</div>
-          </Card>
-          <Card className="p-4">
-            <div className="label text-ink-mute">SGK Primi</div>
-            <div className="mt-1 font-mono text-lg text-ink">{fmt(d.sgkPrimToplam)}</div>
-            <div className="mt-1 text-xs text-ink-mute">→ Vergi (SGK beyanname)</div>
-          </Card>
-          <Card className="p-4">
-            <div className="label text-ink-mute">Gelir V. + Damga</div>
-            <div className="mt-1 font-mono text-lg text-ink">{fmt(d.muhtasarToplam)}</div>
-            <div className="mt-1 text-xs text-ink-mute">→ Vergi (Muhtasar)</div>
-          </Card>
-          <Card className="p-4">
-            <div className="label text-ink-mute">İşveren Maliyeti</div>
+            <div className="label text-ink-mute">Toplam işveren maliyeti</div>
             <div className="mt-1 font-mono text-lg text-crimson">{fmt(d.toplamIsverenMaliyeti)}</div>
-            <div className="mt-1 text-xs text-ink-mute">brüt + işveren payı</div>
+            <div className="mt-1 text-xs text-ink-mute">Brüt ücret ve işveren payları.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="label text-ink-mute">Toplam net maaş</div>
+            <div className="mt-1 font-mono text-lg text-positive">{fmt(d.toplamNet)}</div>
+            <div className="mt-1 text-xs text-ink-mute">Finans nakit çıkışı.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="label text-ink-mute">SGK yükümlülüğü</div>
+            <div className="mt-1 font-mono text-lg text-ink">{fmt(d.sgkPrimToplam)}</div>
+            <div className="mt-1 text-xs text-ink-mute">İşçi ve işveren primleri.</div>
+          </Card>
+          <Card className="p-4">
+            <div className="label text-ink-mute">Gelir vergisi + damga</div>
+            <div className="mt-1 font-mono text-lg text-ink">{fmt(d.muhtasarToplam)}</div>
+            <div className="mt-1 text-xs text-ink-mute">Muhtasar yükümlülüğü.</div>
           </Card>
         </div>
-      </div>
+      </section>
 
-      {/* Per-person payroll slips */}
-      <Card className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <section aria-labelledby="payroll-checks-title">
+        <h3 id="payroll-checks-title"><Label>Kontrol edilmesi gerekenler</Label></h3>
+        {missingAttendance.length === 0 && missingPaymentDetails.length === 0 ? (
+          <div className="mt-3 rounded-card border border-positive/20 bg-positive/5 px-4 py-3 text-sm text-positive">Bu dönem için kayıtlı bir puantaj veya ödeme bilgisi eksiği görünmüyor.</div>
+        ) : (
+          <Card className="mt-3 p-4">
+            <ul className="space-y-2 text-sm leading-relaxed text-ink-soft">
+              {missingAttendance.length > 0 && <li><span className="font-medium text-warn">{missingAttendance.length} çalışan:</span> {donem} puantajı bulunmuyor; bordro mevcut ücret kaydıyla hesaplandı.</li>}
+              {missingPaymentDetails.length > 0 && <li><span className="font-medium text-warn">{missingPaymentDetails.length} çalışan:</span> Telefon veya IBAN bilgisi eksik; bu bilgiler ödeme hazırlığı için tamamlanmalı.</li>}
+            </ul>
+          </Card>
+        )}
+      </section>
+
+      <section aria-labelledby="employee-payroll-title">
+        <h3 id="employee-payroll-title"><Label>Çalışan detayları</Label></h3>
+        <Card className="mt-3 p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
             <thead className="border-b border-line bg-surface-2">
               <tr>
-                <th className="px-4 py-3 text-left"><span className="label text-ink-mute">Personel</span></th>
-                <th className="px-4 py-3 text-right"><span className="label text-ink-mute">Brüt</span></th>
-                <th className="px-4 py-3 text-right"><span className="label text-ink-mute">SGK İşçi</span></th>
-                <th className="px-4 py-3 text-right"><span className="label text-ink-mute">Gelir V.</span></th>
-                <th className="px-4 py-3 text-right"><span className="label text-ink-mute">Damga</span></th>
-                <th className="px-4 py-3 text-right"><span className="label text-ink-mute">Net</span></th>
+                <th scope="col" className="px-4 py-3 text-left"><span className="label text-ink-mute">Personel</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="label text-ink-mute">Brüt</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="label text-ink-mute">SGK İşçi</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="label text-ink-mute">Gelir V.</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="label text-ink-mute">Damga</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="label text-ink-mute">Net</span></th>
               </tr>
             </thead>
             <tbody>
@@ -182,12 +207,16 @@ function BordroView({ donem }: { donem: string }) {
               })}
             </tbody>
           </table>
-        </div>
-      </Card>
+          </div>
+        </Card>
+      </section>
 
-      <p className="text-xs text-ink-mute">
-        Bordro 2026 parametreleriyle hesaplanır (asgari ücret 33.030 TL, SGK işçi %14, işsizlik %1, gelir vergisi dilimleri, damga binde 7,59, asgari ücret istisnası). Kümülatif matrah sabit maaş varsayımıyla modellenir.
-      </p>
+      <section aria-labelledby="payroll-method-title">
+        <h3 id="payroll-method-title"><Label>Hesaplama ve varsayımlar</Label></h3>
+        <p className="mt-3 rounded-card border border-line bg-surface px-4 py-3 text-xs leading-relaxed text-ink-mute">
+          Bordro 2026 parametreleriyle hesaplanır (asgari ücret 33.030 TL, SGK işçi %14, işsizlik %1, gelir vergisi dilimleri, damga binde 7,59, asgari ücret istisnası). Kümülatif matrah sabit maaş varsayımıyla modellenir.
+        </p>
+      </section>
     </div>
   )
 }
