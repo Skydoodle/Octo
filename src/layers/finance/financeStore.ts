@@ -9,7 +9,7 @@ import { isDemoMode } from '../../shared/config'
 import { postInvoiceCreated, postInvoiceSettled, postStandaloneTransaction, postDemoLedger } from './muhasebe/bridge'
 import { clearLedger } from './muhasebe/ledgerStore'
 import { seedCarilerFromInvoices, clearCari } from './cari/cariStore'
-import { setSiparisFaturalandi } from '../operations/opStore'
+import { linkSiparisFatura, unlinkSiparisFatura } from '../operations/opStore'
 import type { BankAccount, Invoice, Transaction } from './types'
 
 export interface FinanceState {
@@ -69,7 +69,7 @@ export function addInvoice(inv: Invoice): boolean {
     state = { ...state, invoices: [inv, ...state.invoices] }
   }
   emit()
-  if (inv.sourceOrderId) setSiparisFaturalandi(inv.sourceOrderId, inv.id, true)
+  if (inv.sourceOrderId) linkSiparisFatura(inv.sourceOrderId, inv.id)
   // Post to the general ledger: the accrual entry always, plus the settlement
   // entry if the invoice was entered already-paid.
   postInvoiceCreated(inv)
@@ -139,7 +139,9 @@ export function updateInvoiceStatus(id: string, status: Invoice['status']) {
   }
   emit()
   if (current?.sourceOrderId && status === 'cancelled') {
-    setSiparisFaturalandi(current.sourceOrderId, current.id, false)
+    unlinkSiparisFatura(current.sourceOrderId, current.id)
+  } else if (current?.sourceOrderId && current.status === 'cancelled') {
+    linkSiparisFatura(current.sourceOrderId, current.id)
   }
 }
 

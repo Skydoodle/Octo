@@ -7,11 +7,15 @@
 import { useSyncExternalStore } from 'react'
 import { loadOrSeed, save } from '../../shared/store/persist'
 import { isDemoMode } from '../../shared/config'
+import { isDateOnly } from '../../shared/dateOnly'
+import type { Invoice } from '../finance/types'
 import {
-  hareketGirisMi, siparisKalanToplam, siparisGecisleri,
+  hareketGirisMi, siparisGecisleri,
   type Urun, type StokHareketi, type Siparis, type SiparisDurumu,
+  type SiparisOdemeDurumu, type SiparisParaBirimi,
   type Sevkiyat, type Recete, type UretimEmri, type Tedarikci,
 } from './types'
+import { reconcilePurchaseOrder } from './purchaseOrderObligations'
 import {
   seedUrunler, seedHareketler, seedSiparisler, seedSevkiyatlar,
   seedReceteler, seedUretim, seedTedarikciler,
@@ -40,7 +44,7 @@ function initial(): OpState {
     return {
       urunler,
       hareketler: seedHareketler(urunler),
-      siparisler: seedSiparisler(urunler),
+      siparisler: seedSiparisler(urunler).map(normalizePersistedSiparis),
       sevkiyatlar: seedSevkiyatlar(),
       receteler: seedReceteler(urunler),
       uretimler: seedUretim(urunler),
@@ -51,11 +55,31 @@ function initial(): OpState {
 }
 
 const loaded = loadOrSeed<OpState>(KEY, initial())
+export function normalizePersistedSiparis(order: Siparis): Siparis {
+  const faturaIds = [...new Set([
+    ...(Array.isArray(order.faturaIds) ? order.faturaIds.filter((id): id is string => typeof id === 'string' && id.length > 0) : []),
+    ...(typeof order.faturaId === 'string' && order.faturaId.length > 0 ? [order.faturaId] : []),
+  ])]
+  const paraBirimi: SiparisParaBirimi = order.paraBirimi === 'USD' || order.paraBirimi === 'EUR'
+    ? order.paraBirimi
+    : 'TRY'
+  const odemeDurumu: SiparisOdemeDurumu = order.odemeDurumu === 'odendi' ? 'odendi' : 'bekliyor'
+  return {
+    ...order,
+    odemeTarihi: isDateOnly(order.odemeTarihi) ? order.odemeTarihi : undefined,
+    paraBirimi,
+    odemeDurumu,
+    faturalandi: Boolean(order.faturalandi),
+    faturaId: faturaIds[0],
+    faturaIds,
+  }
+}
+
 // Migration guard: eksik dizileri default'la (eski persisted state çökmesin).
 let state: OpState = {
   urunler: Array.isArray(loaded?.urunler) ? loaded.urunler : [],
   hareketler: Array.isArray(loaded?.hareketler) ? loaded.hareketler : [],
-  siparisler: Array.isArray(loaded?.siparisler) ? loaded.siparisler : [],
+  siparisler: Array.isArray(loaded?.siparisler) ? loaded.siparisler.map(normalizePersistedSiparis) : [],
   sevkiyatlar: Array.isArray(loaded?.sevkiyatlar) ? loaded.sevkiyatlar : [],
   receteler: Array.isArray(loaded?.receteler) ? loaded.receteler : [],
   uretimler: Array.isArray(loaded?.uretimler) ? loaded.uretimler : [],
@@ -98,7 +122,7 @@ export function stokMaliyeti(urunId: string, source: OpState = state): number {
 }
 
 // ── Sipariş actions (state machine korumalı) ────────────────────────────────
-export function addSiparis(s: Siparis) { state = { ...state, siparisler: [s, ...state.siparisler] }; emit() }
+export function addSiparis(s: Siparis) { state = { ...state, siparisler: [normalizePersistedSiparis(s), ...state.siparisler] }; emit() }
 export function setSiparisDurum(id: string, durum: SiparisDurumu): boolean {
   const s = state.siparisler.find(x => x.id === id)
   if (!s) return false
@@ -106,14 +130,52 @@ export function setSiparisDurum(id: string, durum: SiparisDurumu): boolean {
   state = { ...state, siparisler: state.siparisler.map(x => x.id === id ? { ...x, durum } : x) }
   emit(); return true
 }
-export function setSiparisFaturalandi(id: string, faturaId?: string, value = true) {
+export interface SiparisObligationPatch {
+  odemeTarihi?: string
+  paraBirimi: SiparisParaBirimi
+  odemeDurumu: SiparisOdemeDurumu
+}
+export function updateSiparisObligation(id: string, patch: SiparisObligationPatch): void {
   state = {
     ...state,
     siparisler: state.siparisler.map(order => order.id === id
-      ? { ...order, faturalandi: value, faturaId: value ? faturaId : undefined }
+      ? {
+          ...order,
+          odemeTarihi: isDateOnly(patch.odemeTarihi) ? patch.odemeTarihi : undefined,
+          paraBirimi: patch.paraBirimi,
+          odemeDurumu: patch.odemeDurumu,
+        }
       : order),
   }
   emit()
+}
+export function linkSiparisFatura(id: string, faturaId: string): void {
+  if (!faturaId) return
+  state = {
+    ...state,
+    siparisler: state.siparisler.map(order => {
+      if (order.id !== id) return order
+      const faturaIds = [...new Set([...(order.faturaIds ?? []), faturaId])]
+      return { ...order, faturaIds, faturaId: faturaIds[0], faturalandi: faturaIds.length > 0 }
+    }),
+  }
+  emit()
+}
+export function unlinkSiparisFatura(id: string, faturaId: string): void {
+  state = {
+    ...state,
+    siparisler: state.siparisler.map(order => {
+      if (order.id !== id) return order
+      const faturaIds = (order.faturaIds ?? []).filter(item => item !== faturaId)
+      return { ...order, faturaIds, faturaId: faturaIds[0], faturalandi: faturaIds.length > 0 }
+    }),
+  }
+  emit()
+}
+export function setSiparisFaturalandi(id: string, faturaId?: string, value = true) {
+  if (!faturaId) return
+  if (value) linkSiparisFatura(id, faturaId)
+  else unlinkSiparisFatura(id, faturaId)
 }
 export function deleteSiparis(id: string) { state = { ...state, siparisler: state.siparisler.filter(s => s.id !== id) }; emit() }
 
@@ -179,18 +241,25 @@ export interface AlisSiparisYukumluluk {
   orderId: string
   date: string
   amount: number
+  currency: SiparisParaBirimi
   description: string
 }
 
-export function acikAlisSiparisYukumlulukleri(): AlisSiparisYukumluluk[] {
+export function acikAlisSiparisYukumlulukleri(invoices: Invoice[] = []): AlisSiparisYukumluluk[] {
   return state.siparisler
-    .filter(s => s.tur === 'alis' && (s.durum === 'onaylandi' || s.durum === 'kismi') && !s.faturalandi && Boolean(s.odemeTarihi))
-    .map(s => ({
-      orderId: s.id,
-      date: s.odemeTarihi as string,
-      amount: siparisKalanToplam(s).genelToplam,
-      description: `Alış siparişi ${s.no} (${s.cariUnvan})`,
-    }))
+    .filter(order => order.tur === 'alis' && (order.durum === 'onaylandi' || order.durum === 'kismi'))
+    .flatMap(order => {
+      if (!isDateOnly(order.odemeTarihi)) return []
+      const reconciliation = reconcilePurchaseOrder(order, invoices, state.siparisler)
+      if (reconciliation.calculationBlocked || reconciliation.remainingAmount <= 0) return []
+      return [{
+        orderId: order.id,
+        date: order.odemeTarihi,
+        amount: reconciliation.remainingAmount,
+        currency: reconciliation.currency,
+        description: `Alış siparişi ${order.no} (${order.cariUnvan})`,
+      }]
+    })
 }
 
 // Devam eden üretim emirleri için karşılanamayan hammadde ihtiyacı.

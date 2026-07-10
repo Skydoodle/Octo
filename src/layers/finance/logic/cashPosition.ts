@@ -1,6 +1,9 @@
 import { BankAccount } from '../types'
 
-export function calculateCashPosition(accounts: BankAccount[]) {
+export function calculateCashPosition(
+  accounts: BankAccount[],
+  baseCurrency: BankAccount['currency'] = 'TRY',
+) {
   const sumCurrency = (currency: BankAccount['currency']) => accounts
     .filter(account => account.currency === currency && Number.isFinite(account.balance))
     .reduce((sum, account) => sum + account.balance, 0)
@@ -10,16 +13,19 @@ export function calculateCashPosition(accounts: BankAccount[]) {
   const totalUSD = sumCurrency('USD')
   const totalEUR = sumCurrency('EUR')
 
-  // No fabricated FX conversion. `netCash` is explicitly the TRY position;
-  // foreign balances remain visible as separate nominal amounts.
-  const netCash = totalTRY
+  // No fabricated FX conversion. `netCash` is the configured base-currency
+  // position; all other balances remain separate nominal amounts.
+  const netCash = sumCurrency(baseCurrency)
 
   return {
     netCash,
     totalTRY,
     totalUSD,
     totalEUR,
-    conversionMissing: totalUSD !== 0 || totalEUR !== 0,
+    baseCurrency,
+    conversionMissing: accounts.some(account =>
+      account.currency !== baseCurrency && Number.isFinite(account.balance) && account.balance !== 0,
+    ),
     accounts,
   }
 }

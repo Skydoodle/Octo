@@ -14,13 +14,18 @@ import {
   uretimEksikMalzemeler,
   type OpState,
 } from '../layers/operations/opStore'
-import { siparisKalanToplam } from '../layers/operations/types'
+import { reconcilePurchaseOrder } from '../layers/operations/purchaseOrderObligations'
 import {
   dateOnlyFromLocalDate,
   finiteNumber,
   isDateOnly,
   lastDayOfFollowingMonth,
 } from '../shared/dateOnly'
+import {
+  getCompanyObligationSettings,
+  salaryPaymentDate,
+  type CompanyObligationSettings,
+} from '../settings/companyObligationSettings'
 import type { EvidenceRef, ReasoningCurrency, ReasoningSignal } from './types'
 
 export interface ReasoningSourceStates {
@@ -28,6 +33,7 @@ export interface ReasoningSourceStates {
   tax: TaxState
   hr: IKState
   operations: OpState
+  settings: CompanyObligationSettings
 }
 
 const currencies: ReasoningCurrency[] = ['TRY', 'USD', 'EUR']
@@ -40,7 +46,7 @@ function positive(value: unknown): number | null {
   return number !== null && number > 0 ? number : null
 }
 
-function invoiceSignals(finance: FinanceState, now: Date): ReasoningSignal[] {
+function invoiceSignals(finance: FinanceState, operations: OpState, now: Date): ReasoningSignal[] {
   const out: ReasoningSignal[] = []
 
   for (const currency of currencies) {
@@ -82,11 +88,10 @@ function invoiceSignals(finance: FinanceState, now: Date): ReasoningSignal[] {
     const effectiveStatus = invoice.status === 'sent' && dueDate && dueDate < today
       ? 'overdue'
       : invoice.status
-    const obligationKey = invoice.obligationKey || (
-      invoice.type === 'purchase' && invoice.sourceOrderId
-        ? `purchase-order:${invoice.sourceOrderId}`
-        : `invoice:${invoice.id}`
-    )
+    const obligationKey = invoice.obligationKey || `invoice:${invoice.id}`
+    const linkedOrder = invoice.sourceOrderId
+      ? operations.siparisler.find(order => order.id === invoice.sourceOrderId)
+      : undefined
 
     out.push({
       id: `finance:invoice:${invoice.id}`,
@@ -98,13 +103,21 @@ function invoiceSignals(finance: FinanceState, now: Date): ReasoningSignal[] {
       currency: invoice.currency,
       entityId: invoice.contactTaxId || invoice.contactName,
       confidence: dueDate ? (effectiveStatus === 'overdue' && isInflow ? 'medium' : 'high') : 'low',
-      evidence: [{
-        domain: 'finance',
-        recordType: 'invoice',
-        recordId: invoice.id,
-        label: `${invoice.contactName}; ${dueDate ? `vade ${dueDate}` : 'vade tarihi geçersiz'}`,
-        value: money(amount, invoice.currency),
-      }],
+      evidence: [
+        {
+          domain: 'finance',
+          recordType: 'invoice',
+          recordId: invoice.id,
+          label: `${invoice.contactName}; ${dueDate ? `vade ${dueDate}` : 'vade tarihi geçersiz'}`,
+          value: money(amount, invoice.currency),
+        },
+        ...(linkedOrder ? [{
+          domain: 'operations' as const,
+          recordType: 'purchase-order',
+          recordId: linkedOrder.id,
+          label: `${linkedOrder.no}; açık fatura bağlantısı`,
+        }] : []),
+      ],
       obligation: {
         key: obligationKey,
         category: isInflow ? 'invoice_receivable' : 'invoice_payable',
@@ -116,6 +129,7 @@ function invoiceSignals(finance: FinanceState, now: Date): ReasoningSignal[] {
         invoiceType: invoice.type,
         currency: invoice.currency,
         sourceOrderId: invoice.sourceOrderId ?? null,
+        missingSourceOrder: Boolean(invoice.sourceOrderId && !linkedOrder),
         authorityRank: 3,
         missingDueDate: !dueDate,
       },
@@ -226,7 +240,12 @@ function payrollEvidence(hr: IKState, period: string, personnelIds: Set<string>)
   return evidence
 }
 
-function hrSignals(hr: IKState, tax: TaxState, now: Date): ReasoningSignal[] {
+function hrSignals(
+  hr: IKState,
+  tax: TaxState,
+  settings: CompanyObligationSettings,
+  now: Date,
+): ReasoningSignal[] {
   const payroll = buBordroDonemi(now, hr)
   if (payroll.bordrolar.length === 0) return []
 
@@ -236,15 +255,30 @@ function hrSignals(hr: IKState, tax: TaxState, now: Date): ReasoningSignal[] {
   const signals: ReasoningSignal[] = []
   const salary = positive(payroll.maasOdemesi)
   if (salary !== null) {
+    const paymentDate = salaryPaymentDate(payroll.donem, settings) ?? undefined
+    const salaryEvidence: EvidenceRef[] = paymentDate
+      ? [...evidence, {
+          domain: 'hr',
+          recordType: 'company-obligation-settings',
+          recordId: 'singleton',
+          label: 'Şirket maaş ödeme kuralı',
+          value: settings.salaryPaymentRule?.mode === 'month_end'
+            ? 'Ayın son günü'
+            : settings.salaryPaymentRule?.mode === 'fixed_day'
+              ? `Ayın ${settings.salaryPaymentRule.day}. günü`
+              : 'Geçerli ödeme kuralı yok',
+        }]
+      : evidence
     signals.push({
       id: `hr:salary:${payroll.donem}`,
       domain: 'hr',
       kind: 'cash_outflow',
       label: 'Net maaş ödemesi',
+      eventDate: paymentDate,
       amount: salary,
       currency: 'TRY',
-      confidence: 'medium',
-      evidence,
+      confidence: paymentDate ? 'medium' : 'low',
+      evidence: salaryEvidence,
       obligation: {
         key: `payroll:salary:${payroll.donem}`,
         category: 'salary',
@@ -254,7 +288,8 @@ function hrSignals(hr: IKState, tax: TaxState, now: Date): ReasoningSignal[] {
       metadata: {
         period: payroll.donem,
         employeeCount: payroll.bordrolar.length,
-        missingPaymentDate: true,
+        missingPaymentDate: !paymentDate,
+        paymentDateSource: paymentDate ? 'company-obligation-settings' : null,
         authorityRank: 2,
       },
     })
@@ -326,44 +361,69 @@ function productEvidence(operations: OpState, productId: string): EvidenceRef[] 
 
 function operationSignals(operations: OpState, finance: FinanceState, now: Date): ReasoningSignal[] {
   const out: ReasoningSignal[] = []
-  const linkedOrderIds = new Set(finance.invoices
-    .filter(invoice => invoice.type === 'purchase' && invoice.status !== 'cancelled' && invoice.sourceOrderId)
-    .map(invoice => invoice.sourceOrderId as string))
 
   for (const order of operations.siparisler) {
     if (order.durum !== 'onaylandi' && order.durum !== 'kismi') continue
 
-    if (order.tur === 'alis' && !order.faturalandi && !linkedOrderIds.has(order.id)) {
-      const total = positive(siparisKalanToplam(order).genelToplam)
-      if (total !== null) {
+    if (order.tur === 'alis') {
+      const reconciliation = reconcilePurchaseOrder(order, finance.invoices, operations.siparisler)
+      const remaining = positive(reconciliation.remainingAmount)
+      if (remaining !== null && (!reconciliation.fullyCovered || reconciliation.calculationBlocked)) {
         const paymentDate = isDateOnly(order.odemeTarihi) ? order.odemeTarihi : undefined
+        const linkIssueIds = reconciliation.linkIssues.map(issue => issue.invoiceId).join(',')
         out.push({
           id: `operations:purchase-order:${order.id}`,
           domain: 'operations',
           kind: 'cash_outflow',
           label: `Alış siparişi ${order.no}`,
           eventDate: paymentDate,
-          amount: total,
-          currency: 'TRY',
+          amount: reconciliation.calculationBlocked ? undefined : remaining,
+          currency: reconciliation.currency,
           entityId: order.cariId,
-          confidence: paymentDate ? 'medium' : 'low',
-          evidence: [{
-            domain: 'operations',
-            recordType: 'purchase-order',
-            recordId: order.id,
-            label: `${order.no}; ${order.cariUnvan}; ${paymentDate ? `ödeme ${paymentDate}` : 'ödeme tarihi eksik'}`,
-            value: money(total),
-          }],
+          confidence: paymentDate && reconciliation.linkIssues.length === 0 ? 'medium' : 'low',
+          evidence: [
+            {
+              domain: 'operations',
+              recordType: 'purchase-order',
+              recordId: order.id,
+              label: `${order.no}; ${order.cariUnvan}; ${paymentDate ? `ödeme ${paymentDate}` : 'ödeme tarihi eksik'}`,
+              value: money(reconciliation.orderTotal, reconciliation.currency),
+            },
+            ...reconciliation.linkedInvoices.map(invoice => ({
+              domain: 'finance' as const,
+              recordType: 'invoice',
+              recordId: invoice.id,
+              label: `${invoice.contactName}; sipariş kapsamı`,
+              value: money(invoice.total, invoice.currency),
+            })),
+            ...reconciliation.linkIssues.flatMap(issue => {
+              const invoice = finance.invoices.find(item => item.id === issue.invoiceId)
+              return invoice ? [{
+                domain: 'finance' as const,
+                recordType: 'invoice',
+                recordId: invoice.id,
+                label: `${invoice.contactName}; doğrulanamayan sipariş bağlantısı`,
+                value: money(invoice.total, invoice.currency),
+              }] : []
+            }),
+          ],
           obligation: {
-            key: `purchase-order:${order.id}`,
+            key: `purchase-order:${order.id}:uncovered`,
             category: 'purchase_order',
             source: 'recorded',
           },
           metadata: {
             orderNo: order.no,
             status: order.durum,
-            invoiced: order.faturalandi,
-            remainingBasis: true,
+            invoiced: reconciliation.invoiceCoverage > 0,
+            orderTotal: reconciliation.orderTotal,
+            invoiceCoverage: reconciliation.invoiceCoverage,
+            remainingAmount: reconciliation.calculationBlocked ? null : remaining,
+            remainingBasis: 'order-total-minus-valid-invoice-coverage',
+            calculationBlocked: reconciliation.calculationBlocked,
+            linkedInvoiceCount: reconciliation.linkedInvoices.length,
+            invalidLinkCount: reconciliation.linkIssues.length,
+            invalidLinkIds: linkIssueIds || null,
             missingPaymentDate: !paymentDate,
             authorityRank: 2,
           },
@@ -542,9 +602,9 @@ export function buildReasoningSignalsFromStates(
   now = new Date(),
 ): ReasoningSignal[] {
   return reconcileObligations([
-    ...invoiceSignals(sources.finance, now),
+    ...invoiceSignals(sources.finance, sources.operations, now),
     ...taxSignals(sources.tax),
-    ...hrSignals(sources.hr, sources.tax, now),
+    ...hrSignals(sources.hr, sources.tax, sources.settings, now),
     ...operationSignals(sources.operations, sources.finance, now),
   ])
 }
@@ -555,6 +615,7 @@ export function buildReasoningSignals(now = new Date()): ReasoningSignal[] {
     tax: getTaxState(),
     hr: getIKState(),
     operations: getOpState(),
+    settings: getCompanyObligationSettings(),
   }, now)
 }
 

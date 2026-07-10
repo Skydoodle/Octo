@@ -6,6 +6,10 @@ import { useCariStore, ensurePerakendeCari } from '../cari/cariStore'
 import NewCariForm from '../cari/NewCariForm'
 import { PERAKENDE_CARI_ID, type Cari } from '../cari/types'
 import { useOpStore } from '../../operations/opStore'
+import { reconcilePurchaseOrder } from '../../operations/purchaseOrderObligations'
+import { useFinanceStore } from '../financeStore'
+import { dateOnlyFromLocalDate } from '../../../shared/dateOnly'
+import { useCompanyObligationSettings } from '../../../settings/companyObligationSettings'
 
 interface LineItem {
   id: string
@@ -25,6 +29,8 @@ const inputCls = 'w-full rounded border border-line bg-surface px-3 py-2.5 text-
 export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const { cariler } = useCariStore()
   const { siparisler } = useOpStore()
+  const { invoices } = useFinanceStore()
+  const settings = useCompanyObligationSettings()
   const [type, setType] = useState<'sales' | 'purchase'>('sales')
   const [kdvDurumu, setKdvDurumu] = useState<'normal' | 'tevkifat' | 'istisna'>('normal')
   const [tevkifatOrani, setTevkifatOrani] = useState<TevkifatOrani>('9/10')
@@ -32,9 +38,10 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const [contactTaxId, setContactTaxId] = useState('')
   const [selectedCariId, setSelectedCariId] = useState<string>('')
   const [showNewCari, setShowNewCari] = useState(false)
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
+  const [issueDate, setIssueDate] = useState(dateOnlyFromLocalDate(new Date()))
   const [dueDate, setDueDate] = useState('')
   const [sourceOrderId, setSourceOrderId] = useState('')
+  const [currency, setCurrency] = useState<Invoice['currency']>(settings.baseCurrency)
   const [invoiceId] = useState(() => 'inv' + Date.now())
 
   // Pick a registered cari: auto-fills name + VKN, locks the fields.
@@ -70,9 +77,13 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
   const subtotal = lineItems.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
   const vatAmount = lineItems.reduce((s, l) => s + (l.quantity * l.unitPrice * l.vatRate) / 100, 0)
   const total = subtotal + vatAmount
+  const linkableOrders = siparisler
+    .filter(order => order.tur === 'alis' && (order.durum === 'onaylandi' || order.durum === 'kismi'))
+    .map(order => ({ order, reconciliation: reconcilePurchaseOrder(order, invoices, siparisler) }))
+    .filter(item => item.reconciliation.remainingAmount > 0)
 
   const fmt = (n: number) =>
-    '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    `${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency === 'TRY' ? 'TL' : currency}`
 
   const buildInvoice = (status: Invoice['status']): Invoice | null => {
     if (!selectedCariId || !contactName || !dueDate || lineItems.some(l => !l.description)) return null
@@ -85,7 +96,7 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
       vatAmount,
       total,
       vatRate: lineItems[0]?.vatRate ?? 20,
-      currency: 'TRY',
+      currency,
       issueDate,
       dueDate,
       status,
@@ -184,21 +195,23 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
               setSourceOrderId(orderId)
               const order = siparisler.find(item => item.id === orderId)
               if (order?.odemeTarihi) setDueDate(order.odemeTarihi)
+              if (order?.paraBirimi) setCurrency(order.paraBirimi)
             }}
           >
             <option value="">Bağlantı yok</option>
-            {siparisler
-              .filter(order => order.tur === 'alis' && !order.faturalandi && (order.durum === 'onaylandi' || order.durum === 'kismi'))
-              .map(order => (
-                <option key={order.id} value={order.id}>{order.no} — {order.cariUnvan}</option>
+            {linkableOrders
+              .map(({ order, reconciliation }) => (
+                <option key={order.id} value={order.id}>
+                  {order.no} — {order.cariUnvan} — kalan {reconciliation.remainingAmount.toLocaleString('tr-TR')} {reconciliation.currency}
+                </option>
               ))}
           </select>
-          <p className="mt-1.5 text-xs text-ink-mute">Bağlanan sipariş ayrı bir nakit yükümlülüğü olarak tekrar sayılmaz.</p>
+          <p className="mt-1.5 text-xs text-ink-mute">Fatura tutarı siparişin açık kısmından düşülür; yalnızca kalan tutar ayrıca izlenir.</p>
         </div>
       )}
 
       {/* Dates */}
-      <div className="mb-6 grid grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-3 gap-4">
         <div>
           <span className="label mb-1.5 block text-ink-mute">Fatura Tarihi</span>
           <input type="date" className={inputCls} value={issueDate} onChange={e => setIssueDate(e.target.value)} />
@@ -206,6 +219,17 @@ export default function NewInvoiceForm({ onClose, onSave }: Props) {
         <div>
           <span className="label mb-1.5 block text-ink-mute">Vade Tarihi</span>
           <input type="date" className={inputCls} value={dueDate} onChange={e => setDueDate(e.target.value)} />
+        </div>
+        <div>
+          <span className="label mb-1.5 block text-ink-mute">Para Birimi</span>
+          <select
+            className={inputCls}
+            value={currency}
+            disabled={Boolean(sourceOrderId)}
+            onChange={event => setCurrency(event.target.value as Invoice['currency'])}
+          >
+            <option value="TRY">TRY</option><option value="USD">USD</option><option value="EUR">EUR</option>
+          </select>
         </div>
       </div>
 

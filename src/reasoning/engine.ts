@@ -9,6 +9,7 @@ import {
   finiteNumber,
 } from '../shared/dateOnly'
 import { buildReasoningSignals } from './signalAdapters'
+import { getCompanyObligationSettings } from '../settings/companyObligationSettings'
 import type {
   EvidenceRef,
   ReasoningCase,
@@ -84,31 +85,53 @@ function freshnessFor(domains: ReasoningDomain[]): string {
     if (domain === 'operations' || domain === 'sales') return 'operations'
     return null
   }).filter((value): value is 'finance' | 'tax' | 'hr' | 'operations' => value !== null))
-  return keys.map(key => `${key}: ${getFreshness(key)}`).join('; ') || 'Canlı store kayıtlarından türetildi.'
+  const values = keys.map(key => `${key}: ${getFreshness(key)}`)
+  if (domains.includes('hr')) {
+    values.push(`company-obligation-settings: ${getFreshness('company-obligation-settings')}`)
+  }
+  return values.join('; ') || 'Canlı store kayıtlarından türetildi.'
 }
 
-function tryCashSignal(signals: ReasoningSignal[]): ReasoningSignal | undefined {
+function cashSignalFor(
+  signals: ReasoningSignal[],
+  baseCurrency: ReasoningCurrency,
+): ReasoningSignal | undefined {
   return signals.find(signal =>
     signal.kind === 'cash_position' &&
-    signal.currency === 'TRY' &&
+    signal.currency === baseCurrency &&
     finiteNumber(signal.amount) !== null,
   )
 }
 
-function detectLiquidityDataGaps(signals: ReasoningSignal[], now: Date): ReasoningCase[] {
-  const outflows = signals.filter(signal =>
-    signal.kind === 'cash_outflow' && signal.currency === 'TRY' && positiveAmount(signal) !== null,
+function detectLiquidityDataGaps(
+  signals: ReasoningSignal[],
+  now: Date,
+  baseCurrency: ReasoningCurrency,
+): ReasoningCase[] {
+  const allOutflows = signals.filter(signal => signal.kind === 'cash_outflow' && signal.currency === baseCurrency)
+  const outflows = allOutflows.filter(signal => positiveAmount(signal) !== null)
+  const blocked = allOutflows.filter(signal => signal.metadata?.calculationBlocked === true)
+  if (outflows.length === 0 && blocked.length === 0) return []
+  const cash = cashSignalFor(signals, baseCurrency)
+  const undated = allOutflows.filter(signal =>
+    (positiveAmount(signal) !== null || signal.metadata?.calculationBlocked === true) && dateMs(signal.eventDate) === null,
   )
-  if (outflows.length === 0) return []
-  const cash = tryCashSignal(signals)
-  const undated = outflows.filter(signal => dateMs(signal.eventDate) === null)
+  const invalidLinks = allOutflows.filter(signal => (finiteNumber(signal.metadata?.invalidLinkCount) ?? 0) > 0)
   const missing: string[] = []
-  if (!cash) missing.push('TRY banka/kasa bakiyesi kayıtlı değil; likidite sonucu hesaplanmadı.')
-  if (undated.length > 0) missing.push(`${undated.length} nakit çıkışının teyit edilmiş ödeme tarihi yok.`)
+  if (!cash) missing.push(`${baseCurrency} banka/kasa bakiyesi kayıtlı değil; likidite sonucu hesaplanmadı.`)
+  const salaryWithoutDate = undated.filter(signal => signal.obligation?.category === 'salary')
+  const ordersWithoutDate = undated.filter(signal => signal.obligation?.category === 'purchase_order')
+  const otherUndated = undated.length - salaryWithoutDate.length - ordersWithoutDate.length
+  if (salaryWithoutDate.length > 0) missing.push('Maaş ödeme günü ayarlanmamış; maaşlar tarihli nakit takvimine eklenmedi.')
+  if (ordersWithoutDate.length > 0) missing.push(`${ordersWithoutDate.length} alış siparişinde teyit edilmiş ödeme tarihi yok.`)
+  if (otherUndated > 0) missing.push(`${otherUndated} nakit çıkışının teyit edilmiş ödeme tarihi yok.`)
+  if (blocked.length > 0) missing.push(`${blocked.length} alış siparişinde çakışan fatura bağlantısı var; kalan tutar nakit hesabına eklenmedi.`)
+  const nonBlockingInvalidLinks = invalidLinks.length - blocked.length
+  if (nonBlockingInvalidLinks > 0) missing.push(`${nonBlockingInvalidLinks} alış siparişinin fatura bağlantısı doğrulanamadı; bağlantılı tutar düşülmedi.`)
   if (missing.length === 0) return []
 
-  const caseSignals = uniqueSignals([...(cash ? [cash] : []), ...undated])
-  const domains = unique(['finance' as const, ...outflows.map(signal => signal.domain)])
+  const caseSignals = uniqueSignals([...(cash ? [cash] : []), ...undated, ...invalidLinks])
+  const domains = unique(['finance' as const, ...allOutflows.map(signal => signal.domain)])
   return [{
     id: `liquidity-data-gap:${cash ? 'dates' : 'cash'}:${dateOnlyFromLocalDate(now)}`,
     ruleId: 'liquidity-data-gap',
@@ -122,14 +145,18 @@ function detectLiquidityDataGaps(signals: ReasoningSignal[], now: Date): Reasoni
     calculation: 'Eksik zorunlu girdiler nedeniyle nakit sonrası bakiye hesaplanmadı.',
     freshness: freshnessFor(domains),
     missingData: missing,
-    rule: 'Likidite sonucu için doğrulanmış TRY nakit bakiyesi ve tarihli yükümlülükler gerekir.',
-    recommendation: 'Eksik TRY hesap bakiyesini ve ödeme tarihlerini kaynağından doğrula.',
+    rule: `Likidite sonucu için doğrulanmış ${baseCurrency} nakit bakiyesi, geçerli bağlantılar ve tarihli yükümlülükler gerekir.`,
+    recommendation: `Eksik ${baseCurrency} hesap bakiyesini, ödeme tarihlerini ve sipariş-fatura bağlantılarını kaynağından doğrula.`,
     owner: 'Finans',
   }]
 }
 
-function detectLiquidityWindows(signals: ReasoningSignal[], now: Date): ReasoningCase[] {
-  const cashSignal = tryCashSignal(signals)
+function detectLiquidityWindows(
+  signals: ReasoningSignal[],
+  now: Date,
+  baseCurrency: ReasoningCurrency,
+): ReasoningCase[] {
+  const cashSignal = cashSignalFor(signals, baseCurrency)
   if (!cashSignal) return []
   const cash = finiteNumber(cashSignal.amount)
   if (cash === null) return []
@@ -143,11 +170,11 @@ function detectLiquidityWindows(signals: ReasoningSignal[], now: Date): Reasonin
     return Math.max(startMs, ms)
   }
   const outflows = signals
-    .filter(signal => signal.kind === 'cash_outflow' && signal.currency === 'TRY' && positiveAmount(signal) !== null)
+    .filter(signal => signal.kind === 'cash_outflow' && signal.currency === baseCurrency && positiveAmount(signal) !== null)
     .filter(signal => effectiveMs(signal) !== null)
     .sort((a, b) => (effectiveMs(a) as number) - (effectiveMs(b) as number))
   const inflows = signals
-    .filter(signal => signal.kind === 'cash_inflow' && signal.currency === 'TRY' && positiveAmount(signal) !== null)
+    .filter(signal => signal.kind === 'cash_inflow' && signal.currency === baseCurrency && positiveAmount(signal) !== null)
     .filter(signal => signal.metadata?.status !== 'overdue')
 
   const cases: ReasoningCase[] = []
@@ -183,10 +210,10 @@ function detectLiquidityWindows(signals: ReasoningSignal[], now: Date): Reasonin
     const domains = unique(['finance' as const, ...groupDomains])
     const missingData = [
       'Vadeli tahsilatlar kayıtlı fatura vadelerine dayanır; tahsilat olasılığı yapılandırılmış değildir.',
-      'Banka hesapları otomatik mutabakatla doğrulanmadıysa TRY nakit bakiyesi değişebilir.',
+      `Banka hesapları otomatik mutabakatla doğrulanmadıysa ${baseCurrency} nakit bakiyesi değişebilir.`,
     ]
     const excludedCurrencies = unique(signals
-      .filter(signal => (signal.kind === 'cash_inflow' || signal.kind === 'cash_outflow') && signal.currency && signal.currency !== 'TRY')
+      .filter(signal => (signal.kind === 'cash_inflow' || signal.kind === 'cash_outflow') && signal.currency && signal.currency !== baseCurrency)
       .map(signal => signal.currency as ReasoningCurrency))
     if (excludedCurrencies.length > 0) {
       missingData.push(`${excludedCurrencies.join(', ')} yükümlülükler kur bilgisi olmadığı için hesaplamaya dahil edilmedi.`)
@@ -202,16 +229,16 @@ function detectLiquidityWindows(signals: ReasoningSignal[], now: Date): Reasonin
       severity,
       confidence: weakestConfidence(caseSignals),
       title: 'Aynı haftada çapraz-katman nakit çakışması',
-      summary: `${labels} aynı 7 günlük pencereye düşüyor; pencere sonuna kadar ${money(totalOut)} çıkış sonrası beklenen TRY nakit ${money(after)}.`,
+      summary: `${labels} aynı 7 günlük pencereye düşüyor; pencere sonuna kadar ${money(totalOut, baseCurrency)} çıkış sonrası beklenen ${baseCurrency} nakit ${money(after, baseCurrency)}.`,
       domains,
       horizonStart: dateFromMs(anchorMs),
       horizonEnd: dateFromMs(endMs),
       signals: caseSignals,
       sources: uniqueSources(caseSignals),
-      calculation: `${money(cash)} nakit + ${money(totalIn)} vadeli tahsilat - ${money(totalOut)} pencere sonuna kadarki yükümlülük = ${money(after)}. Yükümlülük / nakit oranı %${Math.round(pressure * 100)}.`,
+      calculation: `${money(cash, baseCurrency)} nakit + ${money(totalIn, baseCurrency)} vadeli tahsilat - ${money(totalOut, baseCurrency)} pencere sonuna kadarki yükümlülük = ${money(after, baseCurrency)}. Yükümlülük / nakit oranı %${Math.round(pressure * 100)}.`,
       freshness: freshnessFor(domains),
       missingData,
-      rule: 'Farklı iş alanlarından iki veya daha fazla TRY nakit çıkışı 7 günlük pencerede çakıştığında, bugünden pencere sonuna kadarki bütün tarihli TRY hareketler birlikte hesaplanır.',
+      rule: `Farklı iş alanlarından iki veya daha fazla ${baseCurrency} nakit çıkışı 7 günlük pencerede çakıştığında, bugünden pencere sonuna kadarki bütün tarihli ${baseCurrency} hareketler birlikte hesaplanır.`,
       recommendation: after < 0
         ? 'Teyit edilmiş ödeme ve tahsilat tarihlerini birlikte yeniden planla; değiştirilebilen kayıtları sorumlularıyla netleştir.'
         : 'Ödeme sırasını ve tahsilat tarihlerini pencere başlamadan teyit et; hesaplanan nakit tamponunu koru.',
@@ -278,8 +305,15 @@ function detectStockDemandGaps(signals: ReasoningSignal[]): ReasoningCase[] {
   return cases
 }
 
-function detectProductionFundingPressure(signals: ReasoningSignal[], now: Date): ReasoningCase[] {
-  const cashSignal = tryCashSignal(signals)
+function detectProductionFundingPressure(
+  signals: ReasoningSignal[],
+  now: Date,
+  baseCurrency: ReasoningCurrency,
+): ReasoningCase[] {
+  // Product cards currently carry TRY purchase prices. Without a dated FX source
+  // they cannot be combined with a non-TRY company cash position.
+  if (baseCurrency !== 'TRY') return []
+  const cashSignal = cashSignalFor(signals, baseCurrency)
   const cash = finiteNumber(cashSignal?.amount)
   if (!cashSignal || cash === null) return []
   const startDate = dateOnlyFromLocalDate(now)
@@ -341,6 +375,38 @@ function detectProductionFundingPressure(signals: ReasoningSignal[], now: Date):
   }
 
   return cases
+}
+
+function detectForeignCurrencyDataGap(
+  signals: ReasoningSignal[],
+  baseCurrency: ReasoningCurrency,
+): ReasoningCase[] {
+  const foreign = signals.filter(signal =>
+    (signal.kind === 'cash_inflow' || signal.kind === 'cash_outflow') &&
+    signal.currency !== undefined &&
+    signal.currency !== baseCurrency &&
+    positiveAmount(signal) !== null,
+  )
+  if (foreign.length === 0) return []
+  const foreignCurrencies = unique(foreign.map(signal => signal.currency as ReasoningCurrency))
+  const domains = unique(foreign.map(signal => signal.domain))
+  return [{
+    id: `foreign-currency-data-gap:${baseCurrency}:${foreign.map(signal => signal.id).sort().join('|')}`,
+    ruleId: 'foreign-currency-data-gap',
+    severity: 'info',
+    confidence: 'low',
+    title: 'Dövizli yükümlülükler ayrı izleniyor',
+    summary: `${foreignCurrencies.join(', ')} kayıtları için tarihli kur kaynağı yok; ${baseCurrency} nakit hesabına eklenmedi.`,
+    domains,
+    signals: foreign,
+    sources: uniqueSources(foreign),
+    calculation: `Dönüşüm yapılmadı. ${foreignCurrencies.join(', ')} tutarları kendi para birimlerinde korundu.`,
+    freshness: freshnessFor(domains),
+    missingData: [`${foreignCurrencies.join(', ')} için işlem tarihine bağlı, kaynaklı döviz kuru bulunmuyor.`],
+    rule: `Yabancı para tutarları, tarihli ve kaynaklı kur olmadan ${baseCurrency} likiditesine çevrilmez.`,
+    recommendation: 'Dövizli kayıtların tarihini doğrula ve kullanılacak tarihli kur kaynağını ekle.',
+    owner: 'Finans',
+  }]
 }
 
 function detectOverdueReceivables(signals: ReasoningSignal[], now: Date): ReasoningCase[] {
@@ -408,23 +474,26 @@ function detectComplianceRisks(signals: ReasoningSignal[]): ReasoningCase[] {
 export function runReasoningEngine(
   signals: ReasoningSignal[] | undefined = undefined,
   now = new Date(),
+  baseCurrency: ReasoningCurrency = getCompanyObligationSettings().baseCurrency,
 ): ReasoningCase[] {
   const sourceSignals = signals ?? buildReasoningSignals(now)
   return [
-    ...detectLiquidityWindows(sourceSignals, now),
+    ...detectLiquidityWindows(sourceSignals, now, baseCurrency),
     ...detectStockDemandGaps(sourceSignals),
-    ...detectProductionFundingPressure(sourceSignals, now),
+    ...detectProductionFundingPressure(sourceSignals, now, baseCurrency),
     ...detectOverdueReceivables(sourceSignals, now),
     ...detectComplianceRisks(sourceSignals),
-    ...detectLiquidityDataGaps(sourceSignals, now),
+    ...detectLiquidityDataGaps(sourceSignals, now, baseCurrency),
+    ...detectForeignCurrencyDataGap(sourceSignals, baseCurrency),
   ].sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
 }
 
 export function buildReasoningSnapshot(now = new Date()): ReasoningSnapshot {
   const signals = buildReasoningSignals(now)
+  const baseCurrency = getCompanyObligationSettings().baseCurrency
   return {
     generatedAt: now.toISOString(),
     signals,
-    cases: runReasoningEngine(signals, now),
+    cases: runReasoningEngine(signals, now, baseCurrency),
   }
 }

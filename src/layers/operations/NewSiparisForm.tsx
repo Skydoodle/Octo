@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import Modal from '../../surfaces/dashboard/components/Modal'
 import { useOpStore, addSiparis } from './opStore'
-import { siparisToplam, type Siparis, type SiparisTuru, type SiparisSatiri } from './types'
+import {
+  siparisToplam,
+  type Siparis,
+  type SiparisOdemeDurumu,
+  type SiparisParaBirimi,
+  type SiparisTuru,
+  type SiparisSatiri,
+} from './types'
+import { dateOnlyFromLocalDate } from '../../shared/dateOnly'
+import { useCompanyObligationSettings } from '../../settings/companyObligationSettings'
 
 interface Props { onClose: () => void }
 
@@ -10,11 +19,14 @@ const labelCls = 'label mb-1.5 block text-ink-mute'
 
 export default function NewSiparisForm({ onClose }: Props) {
   const { urunler } = useOpStore()
+  const settings = useCompanyObligationSettings()
   const [tur, setTur] = useState<SiparisTuru>('satis')
   const [cariUnvan, setCariUnvan] = useState('')
-  const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 10))
-  const [teslimTarihi, setTeslimTarihi] = useState(new Date().toISOString().slice(0, 10))
+  const [tarih, setTarih] = useState(dateOnlyFromLocalDate(new Date()))
+  const [teslimTarihi, setTeslimTarihi] = useState(dateOnlyFromLocalDate(new Date()))
   const [odemeTarihi, setOdemeTarihi] = useState('')
+  const [paraBirimi, setParaBirimi] = useState<SiparisParaBirimi>(settings.baseCurrency)
+  const [odemeDurumu, setOdemeDurumu] = useState<SiparisOdemeDurumu>('bekliyor')
   const [satirlar, setSatirlar] = useState<SiparisSatiri[]>([])
   const [touched, setTouched] = useState(false)
 
@@ -44,6 +56,8 @@ export default function NewSiparisForm({ onClose }: Props) {
   const fakeSiparis: Siparis = {
     id: '_', no: '_', tur, cariId: '', cariUnvan, tarih, teslimTarihi,
     odemeTarihi: tur === 'alis' && odemeTarihi ? odemeTarihi : undefined,
+    paraBirimi,
+    odemeDurumu: tur === 'alis' ? odemeDurumu : 'bekliyor',
     durum: 'taslak', satirlar, faturalandi: false,
   }
   const toplam = siparisToplam(fakeSiparis)
@@ -58,17 +72,19 @@ export default function NewSiparisForm({ onClose }: Props) {
       tur, cariId: 'cari-' + Date.now(), cariUnvan: cariUnvan.trim(),
       tarih, teslimTarihi,
       odemeTarihi: tur === 'alis' && odemeTarihi ? odemeTarihi : undefined,
+      paraBirimi,
+      odemeDurumu: tur === 'alis' ? odemeDurumu : 'bekliyor',
       durum: 'taslak', satirlar, faturalandi: false,
     }
     addSiparis(s)
     onClose()
   }
 
-  const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
+  const fmt = (n: number) => `${Math.round(n).toLocaleString('tr-TR')} ${paraBirimi === 'TRY' ? 'TL' : paraBirimi}`
 
   return (
     <Modal title="Yeni Sipariş" onClose={onClose} width="720px">
-      <div className={'mb-4 grid gap-4 ' + (tur === 'alis' ? 'grid-cols-3' : 'grid-cols-2')}>
+      <div className="mb-4 grid grid-cols-2 gap-4">
         <div>
           <span className={labelCls}>Sipariş Türü</span>
           <div className="flex gap-2">
@@ -84,14 +100,29 @@ export default function NewSiparisForm({ onClose }: Props) {
           <span className={labelCls}>{tur === 'satis' ? 'Müşteri' : 'Tedarikçi'} <span className="text-crimson">*</span></span>
           <input className={inputCls + (touched && !cariUnvan.trim() ? ' border-crimson' : '')} value={cariUnvan} onChange={e => setCariUnvan(e.target.value)} placeholder="Ünvan" />
         </div>
-        {tur === 'alis' && (
+      </div>
+
+      {tur === 'alis' && (
+        <div className="mb-4 grid grid-cols-3 gap-4">
           <div>
             <span className={labelCls}>Ödeme Tarihi</span>
             <input type="date" className={inputCls} value={odemeTarihi} onChange={e => setOdemeTarihi(e.target.value)} />
             <span className="mt-1 block text-[10px] text-ink-mute">Boşsa nakit projeksiyonuna tarihli çıkış eklenmez.</span>
           </div>
-        )}
-      </div>
+          <div>
+            <span className={labelCls}>Para Birimi</span>
+            <select className={inputCls} value={paraBirimi} onChange={e => setParaBirimi(e.target.value as SiparisParaBirimi)}>
+              <option value="TRY">TRY</option><option value="USD">USD</option><option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div>
+            <span className={labelCls}>Ödeme Durumu</span>
+            <select className={inputCls} value={odemeDurumu} onChange={e => setOdemeDurumu(e.target.value as SiparisOdemeDurumu)}>
+              <option value="bekliyor">Bekliyor</option><option value="odendi">Ödendi</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="mb-4 grid grid-cols-2 gap-4">
         <div>

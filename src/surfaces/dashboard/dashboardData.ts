@@ -7,8 +7,9 @@ import { getTaxState } from '../../layers/tax/taxStore'
 import { getOpState, tumStokTahminleri } from '../../layers/operations/opStore'
 import { mizanTotals, getLedgerState } from '../../layers/finance/muhasebe/ledgerStore'
 import { getFreshness } from '../../shared/store/persist'
-import { beyannameLabels, statusLabels } from '../../layers/tax/types'
+import { statusLabels } from '../../layers/tax/types'
 import { calendarDaysBetween, dateOnlyFromLocalDate, isDateOnly } from '../../shared/dateOnly'
+import { buildReasoningSignals } from '../../reasoning/signalAdapters'
 
 export interface AuditRow {
   area: string
@@ -91,8 +92,6 @@ function dayLabel(days: number): string {
 }
 
 export function buildHorizon(now = new Date()): HorizonItem[] {
-  const fin = getFinanceState()
-  const tax = getTaxState()
   const op = getOpState()
   const today = dateOnlyFromLocalDate(now)
   const items: HorizonItem[] = []
@@ -103,33 +102,25 @@ export function buildHorizon(now = new Date()): HorizonItem[] {
     items.push({ day: dayLabel(d), event, tone, sortKey: d })
   }
 
-  for (const b of tax.beyannameler) {
-    if (b.status === 'odendi' || !isDateOnly(b.sonTarih)) continue
-    const days = daysUntil(b.sonTarih)
-    push(
-      b.sonTarih,
-      `${beyannameLabels[b.type]} ${b.status === 'gonderildi' ? 'ödeme' : 'beyan/ödeme'} son günü`,
-      days !== null && days <= 7 ? 'crimson' : 'warn',
-    )
-  }
-
-  for (const inv of fin.invoices) {
-    if (inv.status === 'paid' || inv.status === 'cancelled' || inv.status === 'draft' || !isDateOnly(inv.dueDate)) continue
-    push(
-      inv.dueDate,
-      inv.type === 'sales' ? `${inv.contactName} tahsilat vadesi` : `${inv.contactName} ödeme vadesi`,
-      inv.type === 'sales' ? 'positive' : 'mute',
-    )
+  for (const signal of buildReasoningSignals(now)) {
+    if (
+      (signal.kind !== 'cash_inflow' && signal.kind !== 'cash_outflow') ||
+      !signal.eventDate ||
+      typeof signal.amount !== 'number' ||
+      !Number.isFinite(signal.amount) ||
+      signal.amount <= 0
+    ) continue
+    push(signal.eventDate, signal.label, signal.kind === 'cash_inflow' ? 'positive' : 'mute')
   }
 
   for (const order of op.siparisler) {
-    if (order.durum !== 'onaylandi' && order.durum !== 'kismi') continue
-    const eventDate = order.tur === 'satis' ? order.teslimTarihi : order.odemeTarihi
-    if (!eventDate || !isDateOnly(eventDate) || (order.tur === 'alis' && order.faturalandi)) continue
+    if (order.tur !== 'satis' || (order.durum !== 'onaylandi' && order.durum !== 'kismi')) continue
+    const eventDate = order.teslimTarihi
+    if (!isDateOnly(eventDate)) continue
     push(
       eventDate,
-      order.tur === 'satis' ? `${order.no} satış siparişi teslimi` : `${order.no} alış siparişi ödemesi`,
-      order.tur === 'satis' ? 'positive' : 'mute',
+      `${order.no} satış siparişi teslimi`,
+      'positive',
     )
   }
 
@@ -153,7 +144,8 @@ export function dataFreshness() {
   return {
     tax: getFreshness('tax'),
     finance: getFreshness('finance'),
-    hr: getFreshness('hr'),
-    operations: getFreshness('operations'),
+      hr: getFreshness('hr'),
+      operations: getFreshness('operations'),
+      settings: getFreshness('company-obligation-settings'),
   }
 }

@@ -85,6 +85,8 @@ export interface StokHareketi {
 // ── Sipariş (satış / alış) ────────────────────────────────────────────────
 
 export type SiparisTuru = 'satis' | 'alis'
+export type SiparisParaBirimi = 'TRY' | 'USD' | 'EUR'
+export type SiparisOdemeDurumu = 'bekliyor' | 'odendi'
 
 // Sipariş durum makinesi (state machine).
 export type SiparisDurumu =
@@ -125,20 +127,28 @@ export interface Siparis {
   tarih: string              // sipariş tarihi
   teslimTarihi: string       // beklenen teslim
   odemeTarihi?: string       // alış siparişinde teyit edilmiş ödeme tarihi
+  paraBirimi?: SiparisParaBirimi // migration-safe: eski kayıtlar TRY kabul edilir
+  odemeDurumu?: SiparisOdemeDurumu
   durum: SiparisDurumu
   satirlar: SiparisSatiri[]
   faturalandi: boolean       // faturaya dönüştü mü
   faturaId?: string          // bağlı Finans faturası (tam faturalama)
+  faturaIds?: string[]       // açık ve kısmi faturalama için açık bağlantılar
   aciklama?: string
+}
+
+function nonNegativeFinite(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 0
 }
 
 // Sipariş toplamları (türetilir).
 export function siparisToplam(s: Siparis): { netToplam: number; kdvToplam: number; genelToplam: number } {
   let net = 0, kdv = 0
   for (const r of s.satirlar) {
-    const satirNet = r.miktar * r.birimFiyat
+    const satirNet = nonNegativeFinite(r.miktar) * nonNegativeFinite(r.birimFiyat)
+    const kdvOrani = nonNegativeFinite(r.kdvOrani)
     net += satirNet
-    kdv += satirNet * r.kdvOrani / 100
+    kdv += satirNet * kdvOrani / 100
   }
   return { netToplam: net, kdvToplam: kdv, genelToplam: net + kdv }
 }
@@ -147,10 +157,11 @@ export function siparisToplam(s: Siparis): { netToplam: number; kdvToplam: numbe
 export function siparisKalanToplam(s: Siparis): { netToplam: number; kdvToplam: number; genelToplam: number } {
   let net = 0, kdv = 0
   for (const row of s.satirlar) {
-    const remaining = Math.max(0, row.miktar - row.sevkEdilen)
-    const rowNet = remaining * row.birimFiyat
+    const remaining = Math.max(0, nonNegativeFinite(row.miktar) - nonNegativeFinite(row.sevkEdilen))
+    const rowNet = remaining * nonNegativeFinite(row.birimFiyat)
+    const kdvOrani = nonNegativeFinite(row.kdvOrani)
     net += rowNet
-    kdv += rowNet * row.kdvOrani / 100
+    kdv += rowNet * kdvOrani / 100
   }
   return { netToplam: net, kdvToplam: kdv, genelToplam: net + kdv }
 }

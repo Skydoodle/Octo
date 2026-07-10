@@ -7,9 +7,14 @@ import {
   import { calculateCashPosition } from '../logic/cashPosition'
   import { calculateCashProjection, getKnownObligations } from '../logic/cashProjection'
   import BankStatementImport from '../../../import/BankStatementImport'
+  import { useCompanyObligationSettings, type CompanyBaseCurrency } from '../../../settings/companyObligationSettings'
+  import { calendarDaysBetween, dateOnlyFromLocalDate } from '../../../shared/dateOnly'
   
-  const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
-  const fmtK = (n: number) => n >= 1000000 ? '₺' + (n/1000000).toFixed(1) + 'M' : '₺' + (n/1000).toFixed(0) + 'K'
+  const symbol = (currency: CompanyBaseCurrency) => currency === 'TRY' ? '₺' : currency === 'USD' ? '$' : '€'
+  const fmt = (n: number, currency: CompanyBaseCurrency) => symbol(currency) + Math.round(n).toLocaleString('tr-TR')
+  const fmtK = (n: number, currency: CompanyBaseCurrency) => n >= 1000000
+    ? symbol(currency) + (n/1000000).toFixed(1) + 'M'
+    : symbol(currency) + (n/1000).toFixed(0) + 'K'
   
   interface CashTooltipItem {
     payload?: { balance?: number; inflow?: number; outflow?: number }
@@ -18,8 +23,9 @@ import {
     active?: boolean
     payload?: CashTooltipItem[]
     label?: string
+    currency: CompanyBaseCurrency
   }
-  const CustomTooltip = ({ active, payload, label }: CashTooltipProps) => {
+  const CustomTooltip = ({ active, payload, label, currency }: CashTooltipProps) => {
     if (!active || !payload?.length) return null
     const d = payload[0]?.payload
     const balance = d?.balance ?? 0
@@ -29,20 +35,23 @@ import {
       <div style={{ background: 'rgb(var(--ink))', border: 'none', borderRadius: '6px', padding: '12px 16px', minWidth: '180px' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', marginBottom: '8px', letterSpacing: '0.08em' }}>{label}</div>
         <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 500, color: balance > 100000 ? 'rgb(var(--positive))' : balance > 50000 ? 'rgb(var(--warn))' : 'rgb(var(--crimson))', marginBottom: '8px' }}>
-          {fmt(balance)}
+          {fmt(balance, currency)}
         </div>
-        {inflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--positive))', marginBottom: '3px' }}>+{fmt(inflow)} giriş</div>}
-        {outflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--crimson))' }}>-{fmt(outflow)} çıkış</div>}
+        {inflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--positive))', marginBottom: '3px' }}>+{fmt(inflow, currency)} giriş</div>}
+        {outflow > 0 && <div style={{ fontSize: '12px', color: 'rgb(var(--crimson))' }}>-{fmt(outflow, currency)} çıkış</div>}
       </div>
     )
   }
   
   export default function CashFlow() {
   const { accounts: mockAccounts, transactions: mockTransactions } = useFinanceStore()
+    const settings = useCompanyObligationSettings()
     const [showEkstre, setShowEkstre] = useState(false)
     const knownObligations = getKnownObligations()
-    const cash = calculateCashPosition(mockAccounts)
-    const projection = calculateCashProjection(cash.netCash, mockTransactions, knownObligations)
+    const baseAccountIds = new Set(mockAccounts.filter(account => account.currency === settings.baseCurrency).map(account => account.id))
+    const baseTransactions = mockTransactions.filter(transaction => baseAccountIds.has(transaction.accountId))
+    const cash = calculateCashPosition(mockAccounts, settings.baseCurrency)
+    const projection = calculateCashProjection(cash.netCash, baseTransactions, knownObligations)
     const minBalance = Math.min(...projection.map(d => d.balance))
     const maxBalance = Math.max(...projection.map(d => d.balance))
     const endBalance = projection[29]?.balance || 0
@@ -54,12 +63,10 @@ import {
     }))
   
     // Critical days — where obligations hit
+    const today = dateOnlyFromLocalDate(new Date())
     const criticalDays = knownObligations.filter(o => {
-      const d = new Date(o.date)
-      const today = new Date()
-      const future = new Date()
-      future.setDate(future.getDate() + 30)
-      return d >= today && d <= future
+      const days = calendarDaysBetween(today, o.date)
+      return days !== null && days >= 0 && days <= 30
     })
   
     return (
@@ -80,18 +87,18 @@ import {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
           <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', padding: '20px' }}>
             <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Bugünkü Nakit</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: 'rgb(var(--positive))' }}>{fmt(cash.netCash)}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: 'rgb(var(--positive))' }}>{fmt(cash.netCash, settings.baseCurrency)}</div>
           </div>
           <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', padding: '20px' }}>
             <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>30 Gün Sonra</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: endBalance > 0 ? 'rgb(var(--positive))' : 'rgb(var(--crimson))' }}>{fmt(endBalance)}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: endBalance > 0 ? 'rgb(var(--positive))' : 'rgb(var(--crimson))' }}>{fmt(endBalance, settings.baseCurrency)}</div>
             <div style={{ fontSize: '11px', color: change >= 0 ? 'rgb(var(--positive))' : 'rgb(var(--crimson))', marginTop: '4px' }}>
-              {change >= 0 ? '▲' : '▼'} {fmt(Math.abs(change))}
+              {change >= 0 ? '▲' : '▼'} {fmt(Math.abs(change), settings.baseCurrency)}
             </div>
           </div>
           <div style={{ background: minBalance < 50000 ? 'rgb(var(--crimson) / 0.1)' : 'rgb(var(--surface))', border: `1px solid ${minBalance < 50000 ? 'rgb(var(--crimson))' : 'rgb(var(--line))'}`, padding: '20px' }}>
             <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>En Düşük Nokta</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: minBalance < 50000 ? 'rgb(var(--crimson))' : 'rgb(var(--ink))' }}>{fmt(minBalance)}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: minBalance < 50000 ? 'rgb(var(--crimson))' : 'rgb(var(--ink))' }}>{fmt(minBalance, settings.baseCurrency)}</div>
             <div style={{ fontSize: '11px', color: minBalance < 50000 ? 'rgb(var(--crimson))' : 'rgb(var(--ink-mute))', marginTop: '4px' }}>
               {minBalance < 50000 ? '⚠ Kritik seviye' : 'Güvenli'}
             </div>
@@ -99,7 +106,7 @@ import {
           <div style={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', padding: '20px' }}>
             <div style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgb(var(--ink-mute))', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Planlı Çıkış</div>
             <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 500, color: 'rgb(var(--warn))' }}>
-              {fmt(knownObligations.reduce((s, o) => s + o.amount, 0))}
+              {fmt(knownObligations.reduce((s, o) => s + o.amount, 0), settings.baseCurrency)}
             </div>
             <div style={{ fontSize: '11px', color: 'rgb(var(--ink-mute))', marginTop: '4px' }}>{criticalDays.length} ödeme planlandı</div>
           </div>
@@ -140,10 +147,10 @@ import {
               <YAxis
                 tick={{ fontSize: 10, fill: 'rgb(var(--ink-mute))', fontFamily: 'monospace' }}
                 axisLine={false} tickLine={false}
-                tickFormatter={fmtK}
+                tickFormatter={value => fmtK(value, settings.baseCurrency)}
                 domain={[0, maxBalance * 1.1]}
               />
-              <Tooltip content={<CustomTooltip />}/>
+              <Tooltip content={<CustomTooltip currency={settings.baseCurrency} />}/>
               <ReferenceLine y={50000} stroke="rgb(var(--crimson))" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'Kritik eşik', position: 'right', fontSize: 10, fill: 'rgb(var(--crimson))', fontFamily: 'monospace' }}/>
               <Area
                 type="monotone"
@@ -178,7 +185,7 @@ import {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 500, color: 'rgb(var(--ink))' }}>{fmt(ob.amount)}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 500, color: 'rgb(var(--ink))' }}>{fmt(ob.amount, settings.baseCurrency)}</div>
                   <div style={{ fontFamily: 'monospace', fontSize: '10px', color: isPast ? 'rgb(var(--ink-mute))' : isUrgent ? 'rgb(var(--crimson))' : 'rgb(var(--warn))', marginTop: '2px' }}>
                     {isPast ? `${Math.abs(daysUntil)} gün geçti` : daysUntil === 0 ? 'Bugün' : `${daysUntil} gün`}
                   </div>

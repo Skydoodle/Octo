@@ -17,8 +17,15 @@ import { getTotalPayables, getUpcomingPayables } from '../../layers/finance/logi
 import { monthlyTrend as buildTrend, momDelta } from '../../layers/finance/logic/metrics'
 import { buildAuditSummary, buildHorizon } from './dashboardData'
 import { ImportZone } from './components/UniversalImport'
+import DataCoverageCard from './components/DataCoverageCard'
+import { useCompanyObligationSettings, type CompanyBaseCurrency } from '../../settings/companyObligationSettings'
 
-const fmt = (n: number) => '₺' + Math.round(n).toLocaleString('tr-TR')
+const fmt = (n: number, currency: CompanyBaseCurrency = 'TRY') => {
+  const amount = Math.round(n).toLocaleString('tr-TR')
+  if (currency === 'TRY') return `₺${amount}`
+  if (currency === 'USD') return `$${amount}`
+  return `€${amount}`
+}
 
 const dotColor: Record<Aciliyet, string> = {
   kritik: 'bg-crimson',
@@ -31,26 +38,32 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { briefing, loading, regenerate } = useBriefing()
   const { accounts, invoices, transactions } = useFinanceStore()
+  const companySettings = useCompanyObligationSettings()
   const tax = useTaxStore() // subscribe so audit/horizon re-derive when tax data changes
   const hr = useIKStore()
   const operations = useOpStore()
   const insights = runAllDetectors()
 
-  const cash = calculateCashPosition(accounts)
-  const monthlyExpenses = calculateMonthlyExpenses(transactions)
+  const baseAccountIds = new Set(accounts
+    .filter(account => account.currency === companySettings.baseCurrency)
+    .map(account => account.id))
+  const baseInvoices = invoices.filter(invoice => invoice.currency === companySettings.baseCurrency)
+  const baseTransactions = transactions.filter(transaction => baseAccountIds.has(transaction.accountId))
+  const cash = calculateCashPosition(accounts, companySettings.baseCurrency)
+  const monthlyExpenses = calculateMonthlyExpenses(baseTransactions)
   const runway = calculateRunway(cash.netCash, monthlyExpenses)
-  const totalReceivables = getTotalReceivables(invoices)
-  const overdueReceivables = getOverdueReceivables(invoices)
-  const totalPayables = getTotalPayables(invoices)
-  const upcomingPayables = getUpcomingPayables(invoices)
+  const totalReceivables = getTotalReceivables(baseInvoices)
+  const overdueReceivables = getOverdueReceivables(baseInvoices)
+  const totalPayables = getTotalPayables(baseInvoices)
+  const upcomingPayables = getUpcomingPayables(baseInvoices)
 
   // ---- All derived from live stores (no hardcoded data) ----
-  const trend = buildTrend(transactions, 6)
+  const trend = buildTrend(baseTransactions, 6)
   const cashflow = trend.map(p => ({ m: p.month, gelir: p.gelir, gider: p.gider }))
   const audit = buildAuditSummary()
   const horizon = buildHorizon()
 
-  const hasTransactions = transactions.length > 0
+  const hasTransactions = baseTransactions.length > 0
   const hasFinanceData = accounts.length > 0 || invoices.length > 0 || hasTransactions
 
   // Real month-over-month deltas from the trend.
@@ -61,15 +74,15 @@ export default function Dashboard() {
 
   const kpis = [
     {
-      label: 'TRY Nakit Pozisyonu',
-      value: fmt(cash.netCash),
+      label: `${companySettings.baseCurrency} Nakit Pozisyonu`,
+      value: fmt(cash.netCash, companySettings.baseCurrency),
       delta: null as number | null,
-      hint: cash.conversionMissing ? 'döviz bakiyeleri kura çevrilmedi' : runway >= 999 ? 'pist hesaplanamadı' : runway + ' ay pist',
+      hint: cash.conversionMissing ? 'diğer para birimleri kura çevrilmedi' : runway >= 999 ? 'pist hesaplanamadı' : runway + ' ay pist',
       path: '/dashboard/finans',
     },
-    { label: 'Toplam Alacak', value: fmt(totalReceivables), delta: null as number | null, hint: fmt(overdueReceivables) + ' gecikmiş', path: '/dashboard/finans' },
-    { label: 'Toplam Borç', value: fmt(totalPayables), delta: null as number | null, hint: fmt(upcomingPayables) + ' 30 günde', path: '/dashboard/finans' },
-    { label: 'Bu Ay Ciro', value: fmt(monthlyIncome), delta: revenueDelta, hint: 'bu ay tahsilat', path: '/dashboard/finans' },
+    { label: 'Toplam Alacak', value: fmt(totalReceivables, companySettings.baseCurrency), delta: null as number | null, hint: fmt(overdueReceivables, companySettings.baseCurrency) + ' gecikmiş', path: '/dashboard/finans' },
+    { label: 'Toplam Borç', value: fmt(totalPayables, companySettings.baseCurrency), delta: null as number | null, hint: fmt(upcomingPayables, companySettings.baseCurrency) + ' 30 günde', path: '/dashboard/finans' },
+    { label: 'Bu Ay Ciro', value: fmt(monthlyIncome, companySettings.baseCurrency), delta: revenueDelta, hint: 'bu ay tahsilat', path: '/dashboard/finans' },
   ]
 
   const hasAnyData = hasFinanceData ||
@@ -91,6 +104,8 @@ export default function Dashboard() {
           <div className="w-auto"><ImportZone compact /></div>
         </div>
       )}
+
+      <DataCoverageCard />
 
       <Card className="overflow-hidden" delay={0}>
         <div className="p-7">
@@ -187,7 +202,7 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fill: 'rgb(138 133 125)', fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'rgb(255 254 251)', border: '1px solid rgb(226 221 211)', borderRadius: 8, fontSize: 12 }} formatter={(v) => [fmt(Number(v ?? 0)), '']} />
+                  <Tooltip contentStyle={{ background: 'rgb(255 254 251)', border: '1px solid rgb(226 221 211)', borderRadius: 8, fontSize: 12 }} formatter={(v) => [fmt(Number(v ?? 0), companySettings.baseCurrency), '']} />
                   <Area type="monotone" dataKey="gelir" stroke="rgb(195 75 75)" strokeWidth={2} fill="url(#g-gelir)" dot={false} />
                   <Area type="monotone" dataKey="gider" stroke="rgb(138 133 125)" strokeWidth={1.5} fill="url(#g-gider)" dot={false} />
                 </AreaChart>

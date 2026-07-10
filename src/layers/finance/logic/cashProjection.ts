@@ -1,17 +1,18 @@
 import type { Transaction, CashProjectionDay } from '../types'
+import { addDateOnlyDays, dateOnlyFromLocalDate } from '../../../shared/dateOnly'
 
 export function calculateCashProjection(
   currentBalance: number,
   transactions: Transaction[],
-  knownOutflows: { date: string; amount: number; description: string }[] = []
+  knownOutflows: { date: string; amount: number; description: string }[] = [],
+  now = new Date(),
 ): CashProjectionDay[] {
   const projection: CashProjectionDay[] = []
   let runningBalance = currentBalance
 
   for (let i = 0; i < 30; i++) {
-    const date = new Date()
-    date.setDate(date.getDate() + i)
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = addDateOnlyDays(dateOnlyFromLocalDate(now), i)
+    if (!dateStr) continue
 
     // known inflows from existing transactions pattern
     const avgDailyInflow = transactions
@@ -42,12 +43,9 @@ export function calculateCashProjection(
 // Upcoming obligations. In the real system these are derived from the Tax
 // layer's beyannameler (unpaid, future deadlines). The hardcoded demo set is
 // only used when DEMO_MODE is on, so production reflects real data only.
-import { getTaxState } from '../../tax/taxStore'
-import { beyannameLabels } from '../../tax/types'
 import { isDemoMode } from '../../../shared/config'
-import { buBordroDonemi } from '../../hr/hrStore'
-import { acikAlisSiparisYukumlulukleri } from '../../operations/opStore'
-import { lastDayOfFollowingMonth } from '../../../shared/dateOnly'
+import { buildReasoningSignals } from '../../../reasoning/signalAdapters'
+import { getCompanyObligationSettings } from '../../../settings/companyObligationSettings'
 
 export interface Obligation {
   date: string
@@ -67,57 +65,17 @@ const demoObligations: Obligation[] = [
 ]
 
 // Live obligations from real tax records (unpaid beyannameler with their deadlines).
-export function getKnownObligations(): Obligation[] {
-  const tax = getTaxState()
-  const real = tax.beyannameler
-    .filter(b => b.status !== 'odendi')
-    .map(b => ({
-      date: b.sonTarih,
-      amount: b.hesaplananVergi,
-      description: beyannameLabels[b.type],
+export function getKnownObligations(now = new Date()): Obligation[] {
+  const baseCurrency = getCompanyObligationSettings().baseCurrency
+  const obligations = buildReasoningSignals(now)
+    .filter(signal => signal.kind === 'cash_outflow' && signal.currency === baseCurrency && signal.eventDate)
+    .filter(signal => typeof signal.amount === 'number' && Number.isFinite(signal.amount) && signal.amount > 0)
+    .map(signal => ({
+      date: signal.eventDate as string,
+      amount: signal.amount as number,
+      description: signal.label,
     }))
-
-  // İK payroll: the monthly net-salary outflow is a real, recurring cash
-  // obligation. This is what collides with KDV/SGK deadlines in the orchestrator
-  // — the flagship cross-arm signal, now driven by real personnel data.
-  const payroll = getPayrollObligations()
-
-  // Operasyon: open purchase orders are future cash outflows.
-  const purchaseOrders = getPurchaseObligations()
-
-  const combined = [...real, ...payroll, ...purchaseOrders]
-  if (combined.length > 0) return combined
+  if (obligations.length > 0) return obligations
   // No real data: show demo obligations only in demo mode, otherwise nothing.
   return isDemoMode() ? demoObligations : []
-}
-
-// Derive cash obligations from open purchase orders (Operasyon → Finans).
-function getPurchaseObligations(): Obligation[] {
-  try {
-    return acikAlisSiparisYukumlulukleri().map(y => ({
-      date: y.date, amount: y.amount, description: y.description,
-    }))
-  } catch {
-    return []
-  }
-}
-function getPayrollObligations(): Obligation[] {
-  try {
-    const donem = buBordroDonemi()
-    if (donem.bordrolar.length === 0) return []
-    const now = new Date()
-    const obligations: Obligation[] = []
-    // Salary timing is company-specific and is not projected without a stored
-    // payment date. Standard 4/a SGK timing remains a derived estimate.
-    if (donem.sgkPrimToplam > 0) {
-      obligations.push({
-        date: lastDayOfFollowingMonth(now),
-        amount: donem.sgkPrimToplam,
-        description: 'SGK primi (İK; resmi takvim teyidi gerekli)',
-      })
-    }
-    return obligations
-  } catch {
-    return []
-  }
 }

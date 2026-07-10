@@ -27,6 +27,7 @@ function emptySources(): ReasoningSourceStates {
       uretimler: [],
       tedarikciler: [],
     },
+    settings: { version: 1, baseCurrency: 'TRY' },
   }
 }
 
@@ -136,12 +137,11 @@ describe('reasoning signal contracts', () => {
     })
 
     const obligations = buildReasoningSignalsFromStates(sources, NOW)
-      .filter(item => item.obligation?.key === 'purchase-order:po1')
-    expect(obligations).toHaveLength(1)
-    expect(obligations[0].id).toBe('finance:invoice:inv1')
+    expect(obligations.find(item => item.id === 'finance:invoice:inv1')).toBeDefined()
+    expect(obligations.find(item => item.id === 'operations:purchase-order:po1')).toBeUndefined()
   })
 
-  it('uses only the remaining value of a partially fulfilled purchase order', () => {
+  it('does not mistake partial fulfilment for invoice coverage', () => {
     const sources = emptySources()
     sources.operations.siparisler.push({
       id: 'po1', no: 'PO-1', tur: 'alis', cariId: 'supplier', cariUnvan: 'Tedarikçi',
@@ -152,7 +152,7 @@ describe('reasoning signal contracts', () => {
 
     const obligation = buildReasoningSignalsFromStates(sources, NOW)
       .find(item => item.id === 'operations:purchase-order:po1')
-    expect(obligation?.amount).toBe(720)
+    expect(obligation?.amount).toBe(1_200)
     expect(obligation?.eventDate).toBe('2026-07-25')
   })
 

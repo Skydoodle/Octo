@@ -36,6 +36,7 @@ export function enableDemo(): void {
   void import('../layers/tax/taxStore').then(m => m.seedTaxDemo())
   void import('../layers/hr/hrStore').then(m => m.seedIKDemo())
   void import('../layers/operations/opStore').then(m => m.seedOpDemo())
+  void import('../settings/companyObligationSettings').then(m => m.seedCompanyObligationSettingsDemo())
 }
 
 // Turn the demo dataset OFF: set the flag, clear every store back to empty.
@@ -47,4 +48,5 @@ export function disableDemo(): void {
   void import('../layers/tax/taxStore').then(m => m.clearTax())
   void import('../layers/hr/hrStore').then(m => m.clearIK())
   void import('../layers/operations/opStore').then(m => m.clearOp())
+  void import('../settings/companyObligationSettings').then(m => m.clearCompanyObligationSettings())
 }

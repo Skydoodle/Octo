@@ -4,6 +4,7 @@ import { useFinanceStore } from '../layers/finance/financeStore'
 import { useTaxStore } from '../layers/tax/taxStore'
 import { useIKStore } from '../layers/hr/hrStore'
 import { useOpStore } from '../layers/operations/opStore'
+import { useCompanyObligationSettings } from '../settings/companyObligationSettings'
 
 export function useBriefing() {
   // Explicit subscriptions ensure every reasoning source causes a fresh,
@@ -12,6 +13,7 @@ export function useBriefing() {
   useTaxStore()
   useIKStore()
   useOpStore()
+  useCompanyObligationSettings()
 
   const [clock, setClock] = useState(() => Date.now())
   useEffect(() => {
