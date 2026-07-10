@@ -15,6 +15,10 @@
 *{border-color:rgb(var(--line));box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background-color:rgb(var(--paper));color:rgb(var(--ink));font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.line-clamp-2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.balanced-wrap{text-wrap:balance}
+.focus-ring:focus-visible{outline:2px solid rgb(var(--crimson));outline-offset:2px}
 .label{font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.14em;font-size:0.6875rem}
 ::-webkit-scrollbar{width:8px}
 ::-webkit-scrollbar-thumb{background:rgb(var(--line));border-radius:99px;border:2px solid rgb(var(--paper))}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

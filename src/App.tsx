@@ -6,6 +6,8 @@ import Finance from "./layers/finance/Finance"
 import Vergi from './layers/tax/Vergi'
 import IK from './layers/hr/IK'
 import Operasyon from './layers/operations/Operasyon'
+import TasksPage from './surfaces/dashboard/tasks/TasksPage'
+import ThirtyDayPage from './surfaces/dashboard/horizon/ThirtyDayPage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -23,6 +25,8 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/dashboard" element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="yapilacaklar" element={<TasksPage />} />
+        <Route path="30-gun" element={<ThirtyDayPage />} />
         <Route path="finans" element={<Finance />} />
         <Route path="vergi" element={<Vergi />} />
         <Route path="hukuk" element={<Placeholder name="Hukuk" />} />

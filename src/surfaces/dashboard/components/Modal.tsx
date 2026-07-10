@@ -1,59 +1,82 @@
-import { useEffect } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 
 interface ModalProps {
   title: string
   onClose: () => void
-  children: React.ReactNode
+  children: ReactNode
   width?: string
 }
 
+const focusableSelector = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+
 export default function Modal({ title, onClose, children, width = '560px' }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    const returnTarget = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const focusFrame = window.requestAnimationFrame(() => {
+      panelRef.current?.querySelector<HTMLElement>(focusableSelector)?.focus()
+    })
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = [...(panelRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [])]
+      if (focusable.length === 0) {
+        event.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      window.cancelAnimationFrame(focusFrame)
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = previousOverflow
+      window.requestAnimationFrame(() => returnTarget?.focus())
+    }
   }, [onClose])
 
   return (
     <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, backdropFilter: 'blur(2px)',
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
     >
       <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#F7F4EE',
-          width, maxWidth: '95vw',
-          maxHeight: '90vh', overflowY: 'auto',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
-        }}
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="max-h-[90vh] max-w-[95vw] overflow-y-auto rounded-card border border-line bg-paper shadow-2xl"
+        style={{ width }}
       >
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid #E2DDD4',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          position: 'sticky', top: 0, background: '#F7F4EE', zIndex: 1,
-        }}>
-          <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#C34B4B', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            {title}
-          </div>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-surface px-5 py-4">
+          <h2 id={titleId} className="label text-crimson">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#8A8680', lineHeight: 1, padding: '0 4px' }}
+            aria-label="Kapat"
+            className="focus-ring grid h-9 w-9 place-items-center rounded-full text-ink-mute hover:bg-surface-2 hover:text-crimson"
           >
-            ×
+            <X size={17} />
           </button>
         </div>
-        <div style={{ padding: '24px' }}>
-          {children}
-        </div>
+        <div className="p-5 md:p-6">{children}</div>
       </div>
     </div>
   )
