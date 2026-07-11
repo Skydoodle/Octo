@@ -8,6 +8,8 @@ import IK from './layers/hr/IK'
 import Operasyon from './layers/operations/Operasyon'
 import TasksPage from './surfaces/dashboard/tasks/TasksPage'
 import ThirtyDayPage from './surfaces/dashboard/horizon/ThirtyDayPage'
+import LoginPage from './auth/LoginPage'
+import ProtectedRoute from './auth/ProtectedRoute'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -23,7 +25,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/dashboard" element={<Layout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="yapilacaklar" element={<TasksPage />} />
         <Route path="30-gun" element={<ThirtyDayPage />} />

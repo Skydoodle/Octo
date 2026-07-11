@@ -7,6 +7,7 @@ import {
   Database,
   ExternalLink,
   ListTodo,
+  LogOut,
   Menu,
   Receipt,
   Users,
@@ -18,6 +19,8 @@ import Drawer from '../../shared/utils/Drawer'
 import DataManager from './components/DataManager'
 import { DropAnywhere } from './components/UniversalImport'
 import { DataManagerContext } from './dataManagerContext'
+import { useAuth } from '../../auth/authContext'
+import { signOutErrorMessage } from '../../auth/authErrors'
 
 interface NavItem {
   to: string
@@ -61,7 +64,17 @@ const pageTitles: Array<[string, string]> = [
   ['/dashboard', 'Bugün'],
 ]
 
-function Navigation({ onNavigate, openData }: { onNavigate?: () => void; openData: () => void }) {
+function Navigation({
+  onNavigate,
+  openData,
+  onLogout,
+  loggingOut,
+}: {
+  onNavigate?: () => void
+  openData: () => void
+  onLogout: () => void
+  loggingOut: boolean
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <nav aria-label="Ana menü" className="space-y-6">
@@ -100,6 +113,15 @@ function Navigation({ onNavigate, openData }: { onNavigate?: () => void; openDat
             <Database size={17} className="shrink-0" />
             <span>Verileri Yönet</span>
           </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={loggingOut}
+            className="focus-ring mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft transition-colors hover:bg-crimson/5 hover:text-crimson disabled:cursor-wait disabled:opacity-50"
+          >
+            <LogOut size={17} className="shrink-0" />
+            <span>{loggingOut ? 'Çıkış yapılıyor…' : 'Çıkış yap'}</span>
+          </button>
         </div>
       </nav>
     </div>
@@ -109,17 +131,41 @@ function Navigation({ onNavigate, openData }: { onNavigate?: () => void; openDat
 export default function Layout() {
   const [showData, setShowData] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const { signOut } = useAuth()
   const location = useLocation()
   const currentTitle = pageTitles.find(([path]) => path === '/dashboard'
     ? location.pathname === path
     : location.pathname.startsWith(path))?.[1] ?? 'Octo'
   const openData = () => setShowData(true)
+  const logout = async () => {
+    setLoggingOut(true)
+    setLogoutError(null)
+    try {
+      const error = await signOut()
+      if (error) {
+        setLogoutError(signOutErrorMessage(error))
+        return
+      }
+      setShowMobileMenu(false)
+    } catch (error) {
+      setLogoutError(signOutErrorMessage(error))
+    } finally {
+      setLoggingOut(false)
+    }
+  }
 
   return (
     <DataManagerContext.Provider value={openData}>
       <div className="min-h-screen bg-paper md:flex">
         <DropAnywhere />
         {showData && <DataManager onClose={() => setShowData(false)} />}
+        {logoutError && (
+          <div role="alert" className="fixed bottom-4 right-4 z-[140] max-w-sm rounded-lg border border-crimson/25 bg-surface px-4 py-3 text-sm text-crimson shadow-soft">
+            {logoutError}
+          </div>
+        )}
 
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface/70 px-5 py-6 backdrop-blur md:flex">
           <div className="mb-8 flex items-center justify-between px-2">
@@ -129,7 +175,7 @@ export default function Layout() {
             </Link>
             <ThemeToggle />
           </div>
-          <Navigation openData={openData} />
+          <Navigation openData={openData} onLogout={() => { void logout() }} loggingOut={loggingOut} />
           <div className="mt-4 border-t border-line pt-4">
             <Link to="/" className="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft hover:bg-surface-2 hover:text-ink">
               <ExternalLink size={17} className="shrink-0" />
@@ -157,7 +203,12 @@ export default function Layout() {
         </header>
 
         <Drawer open={showMobileMenu} onClose={() => setShowMobileMenu(false)} title="Menü">
-          <Navigation openData={openData} onNavigate={() => setShowMobileMenu(false)} />
+          <Navigation
+            openData={openData}
+            onNavigate={() => setShowMobileMenu(false)}
+            onLogout={() => { void logout() }}
+            loggingOut={loggingOut}
+          />
           <Link to="/" onClick={() => setShowMobileMenu(false)} className="focus-ring mt-8 flex items-center gap-3 rounded-lg border-t border-line px-3 py-4 text-sm text-ink-soft">
             <ExternalLink size={17} /> Ana Sayfa
           </Link>
