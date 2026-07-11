@@ -10,6 +10,8 @@ import TasksPage from './surfaces/dashboard/tasks/TasksPage'
 import ThirtyDayPage from './surfaces/dashboard/horizon/ThirtyDayPage'
 import LoginPage from './auth/LoginPage'
 import ProtectedRoute from './auth/ProtectedRoute'
+import CompanyRequiredRoute from './company/CompanyRequiredRoute'
+import CompanySetupPage from './company/CompanySetupPage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -26,7 +28,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path="/setup/company" element={<ProtectedRoute><CompanySetupPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><CompanyRequiredRoute><Layout /></CompanyRequiredRoute></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="yapilacaklar" element={<TasksPage />} />
         <Route path="30-gun" element={<ThirtyDayPage />} />
