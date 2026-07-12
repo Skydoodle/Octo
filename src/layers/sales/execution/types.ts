@@ -1,0 +1,30 @@
+export type Currency='TRY'|'EUR'|'USD'|'GBP'
+export type SalesLeadStatus='new'|'to_contact'|'contacted'|'qualifying'|'qualified'|'disqualified'|'converted'
+export type SalesLeadType='organization'|'individual'
+export type ForecastCategory='committed'|'expected'|'potential'|'excluded'
+export type SalesPriority='low'|'normal'|'high'|'critical'
+export type SalesActivityType='call'|'meeting'|'email'|'message'|'note'|'task'|'quote_sent'|'file_shared'|'stage_changed'|'sales_order_event'|'invoice_event'|'payment_event'
+export type SalesActivityVisibility='company'|'sales_team'|'private'
+
+export interface SalesLead {id:string;companyId:string;leadType:SalesLeadType;companyName:string|null;firstName:string|null;lastName:string|null;email:string|null;phone:string|null;source:string|null;productInterest:string|null;assignedTo:string|null;status:SalesLeadStatus;estimatedValue:number|null;currency:Currency;qualificationNotes:string|null;nextAction:string|null;nextActionAt:string|null;disqualificationReason:string|null;convertedPartyId:string|null;convertedContactId:string|null;convertedOpportunityId:string|null;convertedAt:string|null;archivedAt:string|null;createdAt:string;updatedAt:string}
+export interface SalesPipeline {id:string;companyId:string;name:string;isDefault:boolean;isActive:boolean;archivedAt:string|null;createdAt:string;updatedAt:string}
+export interface SalesPipelineStage {id:string;companyId:string;pipelineId:string;name:string;stageKey:string;position:number;defaultProbability:number;staleAfterDays:number|null;isClosed:boolean;outcome:'won'|'lost'|null;requiredFields:string[];recommendedActions:string[];createdAt:string;updatedAt:string}
+export interface SalesOpportunity {id:string;companyId:string;partyId:string;pipelineId:string;stageId:string;ownerUserId:string;title:string;expectedValue:number;currency:Currency;expectedCloseDate:string|null;productInterest:string|null;nextAction:string|null;nextActionAt:string|null;probability:number;forecastCategory:ForecastCategory;expectedMarginPct:number|null;source:string|null;priority:SalesPriority;customerNeed:string|null;decisionProcess:string|null;competitors:string|null;lossReason:string|null;wonAt:string|null;lostAt:string|null;archivedAt:string|null;createdAt:string;updatedAt:string}
+export interface SalesOpportunityContact {id:string;companyId:string;opportunityId:string;contactId:string;relationshipRole:string|null;isPrimary:boolean;createdAt:string}
+export interface SalesActivity {id:string;companyId:string;activityType:SalesActivityType;leadId:string|null;partyId:string|null;contactId:string|null;opportunityId:string|null;ownerUserId:string;assignedTo:string|null;title:string|null;description:string|null;outcome:string|null;activityAt:string;dueAt:string|null;completedAt:string|null;nextAction:string|null;nextActionAt:string|null;visibility:SalesActivityVisibility;archivedAt:string|null;createdAt:string;updatedAt:string}
+export interface OpportunityStageHistory {id:string;companyId:string;opportunityId:string;fromStageId:string|null;toStageId:string;changedBy:string;changedAt:string;reason:string|null;daysInPreviousStage:number|null}
+
+export interface SalesLeadCreateInput {leadType?:SalesLeadType;companyName?:string|null;firstName?:string|null;lastName?:string|null;email?:string|null;phone?:string|null;source?:string|null;productInterest?:string|null;assignedTo?:string|null;status?:SalesLeadStatus;estimatedValue?:number|null;currency?:Currency;qualificationNotes?:string|null;nextAction?:string|null;nextActionAt?:string|null;disqualificationReason?:string|null}
+export type SalesLeadUpdateInput=Partial<SalesLeadCreateInput>
+export interface SalesOpportunityCreateInput {partyId:string;pipelineId:string;stageId:string;ownerUserId:string;title:string;expectedValue?:number;currency?:Currency;expectedCloseDate?:string|null;productInterest?:string|null;nextAction?:string|null;nextActionAt?:string|null;probability?:number|null;forecastCategory?:ForecastCategory;expectedMarginPct?:number|null;source?:string|null;priority?:SalesPriority;customerNeed?:string|null;decisionProcess?:string|null;competitors?:string|null;lossReason?:string|null}
+export type SalesOpportunityUpdateInput=Partial<Omit<SalesOpportunityCreateInput,'partyId'|'pipelineId'|'stageId'|'ownerUserId'>>
+export interface SalesActivityCreateInput {activityType:SalesActivityType;leadId?:string|null;partyId?:string|null;contactId?:string|null;opportunityId?:string|null;ownerUserId:string;assignedTo?:string|null;title?:string|null;description?:string|null;outcome?:string|null;activityAt?:string;dueAt?:string|null;completedAt?:string|null;nextAction?:string|null;nextActionAt?:string|null;visibility?:SalesActivityVisibility}
+export type SalesActivityUpdateInput=Partial<Omit<SalesActivityCreateInput,'ownerUserId'>>
+export interface LeadConversionInput {leadId:string;existingPartyId?:string|null;newPartyDisplayName?:string|null;createContact?:boolean;opportunityTitle?:string|null;pipelineId?:string|null;stageId?:string|null}
+export interface LeadConversionResult {partyId:string;contactId:string|null;opportunityId:string}
+export interface StageTransitionInput {opportunityId:string;destinationStageId:string;reason?:string|null;lossReason?:string|null;nextAction?:string|null;nextActionAt?:string|null}
+export interface OpportunityContactInput {contactId:string;relationshipRole?:string|null;isPrimary?:boolean}
+export interface SalesListFilters {includeArchived?:boolean;status?:string;assignedTo?:string;ownerUserId?:string;partyId?:string;opportunityId?:string;leadId?:string}
+export type SalesExecutionErrorCode='validation'|'forbidden'|'not_found'|'conflict'|'database'
+export interface SalesExecutionError {code:SalesExecutionErrorCode;message:string;cause:unknown}
+export type SalesExecutionResult<T>={data:T;error:null}|{data:null;error:SalesExecutionError}

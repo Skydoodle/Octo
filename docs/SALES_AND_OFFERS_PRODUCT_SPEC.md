@@ -302,10 +302,14 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Kişiler | Liste, filtre, oluşturma, düzenleme, arşiv | Implemented | CRM repository | 1 | Yetim kişi yok |
 | Import | Firma/Kişi Excel ve CSV | Implemented | XLSX, repository | 1 | Eşleme, önizleme, kısmi sonuç |
 | Genel Bakış | Eylem odaklı satış özeti | Designed | Fırsat/aktivite/teklif | 2–3 | Sahte metrik yok |
-| Potansiyel Müşteri | Kayıt, nitelendirme, atomik dönüşüm | Designed | Yeni veri modeli | 2 | Tekrar giriş engellenir |
-| Fırsat | Fırsat ve sonraki eylem yönetimi | Designed | Lead/firma/kişi | 2 | Sonraki eylem kuralı |
-| Pipeline | Aşama modeli, Kanban/liste | Designed | Fırsat | 2 | Kayıp nedeni zorunlu |
-| Aktivite | Aktivite, görev ve birleşik timeline | Designed | Fırsat ve entegrasyonlar | 2/5 | Dış gönderim onaylı |
+| Potansiyel Müşteri | Veri modeli, repository ve atomik dönüşüm | Partially implemented | Kanonik Firma/Kişi | 2 | Müşteri ekranı yok |
+| Potansiyel Müşteri | Liste, detay ve nitelendirme ekranları | Designed | Execution veri temeli | 2 | Henüz UI yok |
+| Fırsat | Veri modeli, repository ve sonraki eylem kuralı | Partially implemented | Firma/Kişi/Pipeline | 2 | Müşteri ekranı yok |
+| Fırsat | Liste ve detay ekranları | Designed | Execution veri temeli | 2 | Henüz UI yok |
+| Pipeline | Pipeline/aşama verisi ve varsayılan provisioning | Partially implemented | Şirket ve Fırsat | 2 | Kanban/liste UI yok |
+| Pipeline | Kanban ve liste ekranları | Designed | Execution veri temeli | 2 | Kayıp nedeni backend’de zorunlu |
+| Aktivite | Aktivite/görev verisi, visibility ve repository | Partially implemented | Lead/Firma/Fırsat | 2/5 | Müşteri ekranı yok |
+| Aktivite | Aktivite, görev ve birleşik timeline ekranları | Designed | Execution veri temeli ve entegrasyonlar | 2/5 | Dış gönderim onaylı |
 | Teklif | Versiyonlu teklif ve PDF | Designed | Fırsat, ürün/maliyet | 3 | Yalnız PDF değildir |
 | Teklif | Onay, indirim ve marj kontrolü | Designed | Finans/Satın Alma | 3/5 | Maliyet bağlantısı gerekir |
 | Satış Siparişi | Tekliften sipariş ve karşılama | Designed | Teklif/Operasyon | 4 | Satın alma siparişi değildir |
