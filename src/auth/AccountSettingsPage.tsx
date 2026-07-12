@@ -6,9 +6,12 @@ import { ThemeToggle, Wordmark } from '../shared/utils/ui'
 import { useAuth } from './authContext'
 import { accountAccessErrorMessage, updateProfileName, validateDisplayName, validatePasswordUpdate } from './accountAccess'
 import { signOutErrorMessage } from './authErrors'
+import { useCompanies } from '../company/companyContext'
+import { canManageTeam } from '../team/teamAccess'
 
 export default function AccountSettingsPage() {
   const { user, signOut } = useAuth()
+  const { activeCompany } = useCompanies()
   const [displayName, setDisplayName] = useState('')
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileSaving, setProfileSaving] = useState(false)
@@ -119,9 +122,12 @@ export default function AccountSettingsPage() {
         <ThemeToggle />
       </header>
       <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
-        <Link to="/dashboard" className="focus-ring inline-flex items-center gap-1.5 rounded text-sm text-ink-mute hover:text-ink">
-          <ArrowLeft size={14} /> Panele dön
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/dashboard" className="focus-ring inline-flex items-center gap-1.5 rounded text-sm text-ink-mute hover:text-ink">
+            <ArrowLeft size={14} /> Panele dön
+          </Link>
+          {canManageTeam(activeCompany) && <Link to="/settings/team" className="focus-ring rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2">Ekip Ayarları</Link>}
+        </div>
         <div className="mt-6">
           <div className="label text-crimson">Hesap</div>
           <h1 className="mt-2 font-display text-4xl font-semibold text-ink">Hesap ayarları</h1>

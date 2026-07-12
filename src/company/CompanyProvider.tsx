@@ -10,6 +10,7 @@ export default function CompanyProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null)
   const requestId = useRef(0)
 
   const refreshCompanies = useCallback(async (): Promise<boolean> => {
@@ -19,17 +20,25 @@ export default function CompanyProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(false)
       setLoadedUserId(null)
+      setActiveCompanyId(null)
       return true
     }
 
     setLoading(true)
     setError(null)
-    const { data, error: loadError } = await supabase
-      .from('companies')
-      .select('id, name, base_currency')
-      .order('created_at', { ascending: true })
+    const [companyResult, membershipResult] = await Promise.all([
+      supabase
+        .from('companies')
+        .select('id, name, base_currency')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('company_memberships')
+        .select('company_id, role, status')
+        .eq('user_id', user.id),
+    ])
 
     if (currentRequest !== requestId.current) return false
+    const loadError = companyResult.error ?? membershipResult.error
     if (loadError) {
       setCompanies([])
       setError(companyLoadErrorMessage(loadError))
@@ -38,7 +47,19 @@ export default function CompanyProvider({ children }: { children: ReactNode }) {
       return false
     }
 
-    setCompanies(data ?? [])
+    const accessByCompany = new Map((membershipResult.data ?? []).map(membership => [membership.company_id, membership]))
+    const nextCompanies: Company[] = (companyResult.data ?? []).map(company => {
+      const access = accessByCompany.get(company.id)
+      return {
+        ...company,
+        role: access?.role ?? null,
+        membership_status: access?.status ?? null,
+      }
+    })
+    setCompanies(nextCompanies)
+    setActiveCompanyId(current => current && nextCompanies.some(company => company.id === current)
+      ? current
+      : nextCompanies[0]?.id ?? null)
     setLoading(false)
     setLoadedUserId(user.id)
     return true
@@ -56,10 +77,12 @@ export default function CompanyProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CompanyContextValue>(() => ({
     companies,
+    activeCompany: companies.find(company => company.id === activeCompanyId) ?? companies[0] ?? null,
+    setActiveCompanyId,
     loading: loading || Boolean(user && loadedUserId !== user.id),
     error,
     refreshCompanies,
-  }), [companies, error, loadedUserId, loading, refreshCompanies, user])
+  }), [activeCompanyId, companies, error, loadedUserId, loading, refreshCompanies, user])
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>
 }

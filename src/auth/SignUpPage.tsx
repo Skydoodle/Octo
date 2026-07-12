@@ -1,14 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { CheckCircle2, UserPlus } from 'lucide-react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './authContext'
 import AuthAccessLayout from './AuthAccessLayout'
 import { accountAccessErrorMessage, validateSignUp } from './accountAccess'
+import { authDestinationFromState } from './authDestination'
 
 export default function SignUpPage() {
   const { session, loading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +26,7 @@ export default function SignUpPage() {
       </AuthAccessLayout>
     )
   }
-  if (session) return <Navigate to="/dashboard" replace />
+  if (session) return <Navigate to={authDestinationFromState(location.state)} replace />
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -47,7 +49,7 @@ export default function SignUpPage() {
         return
       }
       if (data.session) {
-        navigate('/dashboard', { replace: true })
+        navigate(authDestinationFromState(location.state), { replace: true })
         return
       }
       setConfirmationSent(true)
@@ -64,7 +66,7 @@ export default function SignUpPage() {
         <div className="mt-6 rounded-lg border border-emerald-600/25 bg-emerald-600/5 p-4 text-sm leading-relaxed text-ink-soft" role="status">
           <CheckCircle2 size={20} className="mb-2 text-emerald-600" />
           Doğrulama bağlantısını <strong className="text-ink">{email.trim()}</strong> adresine gönderdik. Hesabınızı etkinleştirmek için e-postanızı kontrol edin.
-          <Link to="/login" className="focus-ring mt-4 block w-fit rounded font-medium text-crimson">Giriş sayfasına dön</Link>
+          <Link to="/login" state={location.state} className="focus-ring mt-4 block w-fit rounded font-medium text-crimson">Giriş sayfasına dön</Link>
         </div>
       ) : (
         <form onSubmit={submit} className="mt-6 space-y-4">
@@ -88,7 +90,7 @@ export default function SignUpPage() {
           <button type="submit" disabled={submitting} className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-lg bg-crimson px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60">
             <UserPlus size={16} /> {submitting ? 'Hesap oluşturuluyor…' : 'Hesap oluştur'}
           </button>
-          <p className="text-center text-sm text-ink-mute">Zaten hesabınız var mı? <Link to="/login" className="focus-ring rounded font-medium text-crimson">Giriş yapın</Link></p>
+          <p className="text-center text-sm text-ink-mute">Zaten hesabınız var mı? <Link to="/login" state={location.state} className="focus-ring rounded font-medium text-crimson">Giriş yapın</Link></p>
         </form>
       )}
     </AuthAccessLayout>

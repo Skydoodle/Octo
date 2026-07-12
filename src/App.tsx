@@ -17,6 +17,9 @@ import ForgotPasswordPage from './auth/ForgotPasswordPage'
 import ResetPasswordPage from './auth/ResetPasswordPage'
 import AccountSettingsPage from './auth/AccountSettingsPage'
 import { ACCOUNT_PATH } from './auth/routeProtection'
+import TeamSettingsPage from './team/TeamSettingsPage'
+import TeamOwnerRoute from './team/TeamOwnerRoute'
+import InvitePage from './team/InvitePage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -36,8 +39,10 @@ export default function App() {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/invite" element={<InvitePage />} />
       <Route path={ACCOUNT_PATH} element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
       <Route path="/setup/company" element={<ProtectedRoute><CompanySetupPage /></ProtectedRoute>} />
+      <Route path="/settings/team" element={<ProtectedRoute><CompanyRequiredRoute><TeamOwnerRoute><TeamSettingsPage /></TeamOwnerRoute></CompanyRequiredRoute></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><CompanyRequiredRoute><Layout /></CompanyRequiredRoute></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="yapilacaklar" element={<TasksPage />} />

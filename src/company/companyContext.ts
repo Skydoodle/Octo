@@ -4,10 +4,14 @@ export interface Company {
   id: string
   name: string
   base_currency: string
+  role: 'owner' | 'employee' | 'accountant' | null
+  membership_status: 'active' | 'invited' | 'disabled' | null
 }
 
 export interface CompanyContextValue {
   companies: Company[]
+  activeCompany: Company | null
+  setActiveCompanyId: (companyId: string) => void
   loading: boolean
   error: string | null
   refreshCompanies: () => Promise<boolean>

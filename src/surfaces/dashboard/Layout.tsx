@@ -22,6 +22,8 @@ import { DropAnywhere } from './components/UniversalImport'
 import { DataManagerContext } from './dataManagerContext'
 import { useAuth } from '../../auth/authContext'
 import { signOutErrorMessage } from '../../auth/authErrors'
+import { useCompanies } from '../../company/companyContext'
+import { canManageTeam } from '../../team/teamAccess'
 
 interface NavItem {
   to: string
@@ -70,11 +72,13 @@ function Navigation({
   openData,
   onLogout,
   loggingOut,
+  showTeam,
 }: {
   onNavigate?: () => void
   openData: () => void
   onLogout: () => void
   loggingOut: boolean
+  showTeam: boolean
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -122,6 +126,16 @@ function Navigation({
             <Settings size={17} className="shrink-0" />
             <span>Hesap Ayarları</span>
           </NavLink>
+          {showTeam && (
+            <NavLink
+              to="/settings/team"
+              onClick={onNavigate}
+              className="focus-ring mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <Users size={17} className="shrink-0" />
+              <span>Ekip</span>
+            </NavLink>
+          )}
           <button
             type="button"
             onClick={onLogout}
@@ -143,6 +157,8 @@ export default function Layout() {
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const { signOut } = useAuth()
+  const { activeCompany } = useCompanies()
+  const showTeam = canManageTeam(activeCompany)
   const location = useLocation()
   const currentTitle = pageTitles.find(([path]) => path === '/dashboard'
     ? location.pathname === path
@@ -184,7 +200,7 @@ export default function Layout() {
             </Link>
             <ThemeToggle />
           </div>
-          <Navigation openData={openData} onLogout={() => { void logout() }} loggingOut={loggingOut} />
+          <Navigation openData={openData} onLogout={() => { void logout() }} loggingOut={loggingOut} showTeam={showTeam} />
           <div className="mt-4 border-t border-line pt-4">
             <Link to="/" className="focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft hover:bg-surface-2 hover:text-ink">
               <ExternalLink size={17} className="shrink-0" />
@@ -217,6 +233,7 @@ export default function Layout() {
             onNavigate={() => setShowMobileMenu(false)}
             onLogout={() => { void logout() }}
             loggingOut={loggingOut}
+            showTeam={showTeam}
           />
           <Link to="/" onClick={() => setShowMobileMenu(false)} className="focus-ring mt-8 flex items-center gap-3 rounded-lg border-t border-line px-3 py-4 text-sm text-ink-soft">
             <ExternalLink size={17} /> Ana Sayfa

@@ -4,21 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ThemeToggle, Wordmark } from '../shared/utils/ui'
 import { useAuth } from './authContext'
 import { authErrorMessage } from './authErrors'
-import { ACCOUNT_PATH } from './routeProtection'
-
-interface LoginLocationState {
-  from?: {
-    pathname?: string
-    search?: string
-    hash?: string
-  }
-}
-
-function destinationFromState(state: unknown): string {
-  const from = (state as LoginLocationState | null)?.from
-  if (!from?.pathname?.startsWith('/dashboard') && from?.pathname !== ACCOUNT_PATH) return '/dashboard'
-  return `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
-}
+import { authDestinationFromState } from './authDestination'
 
 export default function LoginPage() {
   const { session, loading: sessionLoading, error: sessionError, signIn } = useAuth()
@@ -39,7 +25,7 @@ export default function LoginPage() {
       </main>
     )
   }
-  if (session) return <Navigate to={destinationFromState(location.state)} replace />
+  if (session) return <Navigate to={authDestinationFromState(location.state)} replace />
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -51,7 +37,7 @@ export default function LoginPage() {
         setFormError(authErrorMessage(result.error))
         return
       }
-      navigate(destinationFromState(location.state), { replace: true })
+      navigate(authDestinationFromState(location.state), { replace: true })
     } catch (error) {
       setFormError(authErrorMessage(error))
     } finally {
