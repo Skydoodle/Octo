@@ -66,7 +66,7 @@ export default function Landing() {
             <a href="#sss" className="hidden text-sm text-ink-soft hover:text-ink sm:inline transition-colors">SSS</a>
             <ThemeToggle />
             <button onClick={startEmpty} className="rounded-full px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink">
-              Boş başla
+              Octo’ya Gir
             </button>
             <button onClick={openDemo} className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-crimson hover:text-crimson">
               Demoyu gör
@@ -332,7 +332,7 @@ export default function Landing() {
               Demoyu görün <ArrowRight size={16} />
             </button>
             <button onClick={startEmpty} className="text-sm text-paper/50 underline-offset-4 transition-colors hover:text-paper/80 hover:underline">
-              Boş başla
+              Octo’ya Gir
             </button>
           </div>
         </div>
