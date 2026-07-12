@@ -50,11 +50,11 @@ const navGroups: NavGroup[] = [
   {
     label: 'İşletme',
     items: [
-      { to: '/dashboard/satis', icon: Handshake, label: 'Satış ve Teklifler' },
       { to: '/dashboard/finans', icon: Wallet, label: 'Finans' },
       { to: '/dashboard/vergi', icon: Receipt, label: 'Vergi' },
       { to: '/dashboard/ik', icon: Users, label: 'İnsan & Bordro' },
       { to: '/dashboard/operasyon', icon: Boxes, label: 'Operasyon' },
+      { to: '/dashboard/satis', icon: Handshake, label: 'Satış ve Teklifler' },
     ],
   },
 ]

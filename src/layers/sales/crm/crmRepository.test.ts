@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import migrationSource from '../../../../supabase/migrations/20260712190000_crm_data_foundation_v1.sql?raw'
-import { createCrmRepository, mapCRMError, partyCreateRpcPayload, type CRMDataClient } from './crmRepository'
+import { BUSINESS_PARTY_WITH_ROLES_SELECT, createCrmRepository, mapCRMError, partyCreateRpcPayload, type CRMDataClient } from './crmRepository'
 import {
   normalizeContactCreateInput,
   normalizeEmail,
@@ -104,6 +104,25 @@ describe('CRM data foundation validation', () => {
 })
 
 describe('CRM repository', () => {
+  it('uses the explicit company-consistency relationship for role embeds', async () => {
+    expect(BUSINESS_PARTY_WITH_ROLES_SELECT).toContain('business_party_roles:business_party_roles!business_party_roles_party_company_fk(role)')
+    const client = new FakeClient()
+    await createCrmRepository(client as unknown as CRMDataClient).listBusinessParties('company-1')
+    expect(client.queries[0].query.operations).toContainEqual({ method: 'select', args: [BUSINESS_PARTY_WITH_ROLES_SELECT] })
+    expect(BUSINESS_PARTY_WITH_ROLES_SELECT).not.toContain('business_party_roles_party_id_fkey')
+  })
+
+  it('loads an empty company list successfully', async () => {
+    const result = await createCrmRepository(new FakeClient([{ data: [], error: null }]) as unknown as CRMDataClient).listBusinessParties('company-empty')
+    expect(result).toEqual({ data: [], error: null })
+  })
+
+  it('preserves the real PostgREST relationship ambiguity error internally', async () => {
+    const cause = { code: 'PGRST201', message: "Could not embed because more than one relationship was found", details: [], hint: 'Use an explicit relationship' }
+    const result = await createCrmRepository(new FakeClient([{ data: null, error: cause }]) as unknown as CRMDataClient).listBusinessParties('company-1')
+    expect(result.error).toMatchObject({ code: 'database', cause })
+    expect(result.error?.message).toBe('CRM işlemi tamamlanamadı. Lütfen yeniden deneyin.')
+  })
   it('maps normalized create input to the atomic company-scoped RPC payload', () => {
     const result = partyCreateRpcPayload('company-1', {
       displayName: '  ACME  ',

@@ -41,6 +41,8 @@ interface CRMTable {
   update(values: Record<string, unknown>): CRMQuery
 }
 
+export const BUSINESS_PARTY_WITH_ROLES_SELECT = '*, business_party_roles:business_party_roles!business_party_roles_party_company_fk(role)'
+
 export interface CRMDataClient {
   from(table: string): CRMTable
   rpc(functionName: string, args: Record<string, unknown>): PromiseLike<DatabaseResponse>
@@ -222,7 +224,7 @@ function contactUpdatePayload(input: BusinessContactUpdateInput): CRMRepositoryR
 export function createCrmRepository(client: CRMDataClient, now: () => string = () => new Date().toISOString()) {
   return {
     async listBusinessParties(companyId: string, filters: BusinessPartyFilters = {}): Promise<CRMRepositoryResult<BusinessParty[]>> {
-      let query = client.from('business_parties').select('*, business_party_roles(role)').eq('company_id', companyId)
+      let query = client.from('business_parties').select(BUSINESS_PARTY_WITH_ROLES_SELECT).eq('company_id', companyId)
       if (!filters.includeArchived) query = query.is('archived_at', null)
       if (filters.relationshipStatus) query = query.eq('relationship_status', filters.relationshipStatus)
       if (filters.search?.trim()) query = query.ilike('normalized_name', `%${normalizeName(filters.search)}%`)
@@ -233,7 +235,7 @@ export function createCrmRepository(client: CRMDataClient, now: () => string = (
 
     async getBusinessParty(companyId: string, partyId: string, includeArchived = false): Promise<CRMRepositoryResult<BusinessParty>> {
       let query = client.from('business_parties')
-        .select('*, business_party_roles(role)')
+        .select(BUSINESS_PARTY_WITH_ROLES_SELECT)
         .eq('company_id', companyId)
         .eq('id', partyId)
       if (!includeArchived) query = query.is('archived_at', null)
@@ -255,7 +257,7 @@ export function createCrmRepository(client: CRMDataClient, now: () => string = (
       const payload = partyUpdatePayload(input)
       if (payload.error) return { data: null, error: payload.error }
       const { data, error } = await client.from('business_parties').update(payload.data)
-        .eq('company_id', companyId).eq('id', partyId).select('*, business_party_roles(role)').maybeSingle()
+        .eq('company_id', companyId).eq('id', partyId).select(BUSINESS_PARTY_WITH_ROLES_SELECT).maybeSingle()
       if (error) return { data: null, error: mapCRMError(error) }
       if (!data) return { data: null, error: { code: 'not_found', message: 'Kayıt bulunamadı.', cause: null } }
       return { data: mapBusinessParty(data), error: null }
@@ -274,7 +276,7 @@ export function createCrmRepository(client: CRMDataClient, now: () => string = (
 
     async archiveBusinessParty(companyId: string, partyId: string): Promise<CRMRepositoryResult<BusinessParty>> {
       const { data, error } = await client.from('business_parties').update({ archived_at: now() })
-        .eq('company_id', companyId).eq('id', partyId).select('*, business_party_roles(role)').maybeSingle()
+        .eq('company_id', companyId).eq('id', partyId).select(BUSINESS_PARTY_WITH_ROLES_SELECT).maybeSingle()
       if (error) return { data: null, error: mapCRMError(error) }
       if (!data) return { data: null, error: { code: 'not_found', message: 'Kayıt bulunamadı.', cause: null } }
       return { data: mapBusinessParty(data), error: null }

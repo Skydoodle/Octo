@@ -44,7 +44,7 @@ describe('Sales CRM interface contract', () => {
 
   it('includes honest firms loading, error, empty and creation states', () => {
     expect(firmsSource).toContain('Firmalar yükleniyor…')
-    expect(firmsSource).toContain('Firmalar yüklenemedi')
+    expect(firmsSource).toContain('Firmalar şu anda yüklenemiyor')
     expect(firmsSource).toContain('Henüz firma yok')
     expect(firmsSource).toContain('Firma oluşturuldu.')
     expect(firmsSource).toContain('createBusinessParty')
