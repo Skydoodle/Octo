@@ -23,7 +23,7 @@ const arms = [
 const faqs = [
   ['Mevcut müşavirimin yerini mi alıyor?', 'Hayır. Octo müşavirinizin yerini almaz. Kayıtlarınızı düzenli ve izlenebilir hâle getirir, eksikleri ve yaklaşan yükümlülükleri gösterir. Beyan ve uzmanlık müşavirinizde kalır.'],
   ['Verilerim güvende mi?', 'Octo, verilerinizi güvenli bağlantılar ve şirket bazlı erişim kontrolleriyle koruyacak şekilde tasarlanmıştır. Her kullanıcı yalnızca yetkili olduğu şirket ve verilere erişebilir.'],
-  ['Logo veya Paraşüt kullanıyorum, ne olacak?', 'Mevcut verilerinizi Octo’ya aktarabilir ve geçiş sürecini kendi hızınızda yönetebilirsiniz. Octo, dağınık kayıtları tek çalışma alanında bir araya getirmenize yardımcı olur.'],
+  ['Halihazırda başka bir sistem kullanıyorum, ne olacak?', 'Mevcut kayıtlarınızı Octo’ya aktarabilir ve geçişi kendi hızınızda tamamlayabilirsiniz. Verileriniz tek çalışma alanında bir araya gelir; süreçlerinizi kesintiye uğratmadan Octo’ya geçebilirsiniz.'],
   ['Kurulum zor mu?', 'Hayır. Teknik kurulum gerektirmez. Hesabınızı açın, şirketinizi oluşturun ve mevcut verilerinizi içe aktarın.'],
 ]
 
