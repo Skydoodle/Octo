@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useReducer, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { enableDemo, disableDemo } from '../shared/config'
 import {
@@ -7,28 +7,29 @@ import {
   Phone, Eye, ChevronDown
 } from 'lucide-react'
 import { Wordmark, ThemeToggle, Label } from '../shared/utils/ui'
+import { initialLeadFormState, leadFormReducer, runFounder50Submission } from './landingLead'
 
 const arms = [
-  { icon: Wallet, name: 'Finans', desc: 'Nakit akışı, mutabakat, anomali tespiti' },
-  { icon: Receipt, name: 'Vergi', desc: 'KDV, Muhtasar, beyanname zekâsı' },
-  { icon: Scale, name: 'Hukuk', desc: 'Sözleşme riski, KVKK, mevzuat takibi' },
-  { icon: Users, name: 'İnsan Kaynakları', desc: 'Bordro, SGK, çalışan uyumu' },
-  { icon: Boxes, name: 'Operasyon', desc: 'Satın alma, tedarikçi, maliyet' },
-  { icon: BarChart3, name: 'Satış ve Teklifler', desc: 'Pipeline, teklif, gelir tahmini' },
-  { icon: ShieldCheck, name: 'Denetim ve Uyum', desc: 'Katmanlar arası çakışma tespiti' },
-  { icon: Gavel, name: 'Dış Denetim Hazırlığı', desc: 'Vergi denetimi, belge paketleme' },
+  { icon: Wallet, name: 'Finans', desc: 'Nakit akışı, mutabakat, anomali tespiti', status: 'Aktif' },
+  { icon: Receipt, name: 'Vergi', desc: 'KDV, Muhtasar, beyanname zekâsı', status: 'Aktif' },
+  { icon: Scale, name: 'Hukuk', desc: 'Sözleşme riski, KVKK, mevzuat takibi', status: 'Yol haritasında' },
+  { icon: Users, name: 'İnsan Kaynakları', desc: 'Bordro, SGK, çalışan uyumu', status: 'Aktif' },
+  { icon: Boxes, name: 'Operasyon', desc: 'Satın alma, tedarikçi, maliyet', status: 'Yol haritasında' },
+  { icon: BarChart3, name: 'Satış ve Teklifler', desc: 'Pipeline, teklif, gelir tahmini', status: 'Yol haritasında' },
+  { icon: ShieldCheck, name: 'Denetim ve Uyum', desc: 'Katmanlar arası çakışma tespiti', status: 'Yol haritasında' },
+  { icon: Gavel, name: 'Dış Denetim Hazırlığı', desc: 'Vergi denetimi, belge paketleme', status: 'Yol haritasında' },
 ]
 
 const faqs = [
-  ['Mevcut müşavirimin yerini mi alıyor?', 'Hayır. Octo müşavirinizin yerini almaz, onu güçlendirir. Verilerinizi okur, eksikleri yakalar ve müşavirinize hazır bir dosya sunar. İnsan ilişkisinin altındaki zekâ katmanıdır.'],
-  ['Verilerim güvende mi?', 'Evet. Octo KVKK uyumlu olarak tasarlandı. Verileriniz Türkiye sınırları içinde, şifrelenmiş olarak saklanır ve hiçbir üçüncü tarafla paylaşılmaz.'],
-  ['Logo veya Paraşüt kullanıyorum, ne olacak?', 'Octo mevcut sisteminizi değiştirmez. Verilerinizi okur ve onların söylemediğini size söyler. Geçiş sürecinde geçmiş verilerinizi de içeri aktarabilirsiniz.'],
-  ['Kurulum zor mu?', 'Hayır. Kurulum gerektirmez. Hesabınızı açın, verilerinizi bağlayın, ertesi sabah ilk brifinginiz hazır.'],
+  ['Mevcut müşavirimin yerini mi alıyor?', 'Hayır. Octo müşavirinizin yerini almaz. Kayıtlarınızı düzenli ve izlenebilir hâle getirir, eksikleri ve yaklaşan yükümlülükleri gösterir. Beyan ve uzmanlık müşavirinizde kalır.'],
+  ['Verilerim güvende mi?', 'Octo, verilerinizi güvenli bağlantılar ve şirket bazlı erişim kontrolleriyle koruyacak şekilde tasarlanmıştır. Her kullanıcı yalnızca yetkili olduğu şirket ve verilere erişebilir.'],
+  ['Logo veya Paraşüt kullanıyorum, ne olacak?', 'Mevcut verilerinizi Octo’ya aktarabilir ve geçiş sürecini kendi hızınızda yönetebilirsiniz. Octo, dağınık kayıtları tek çalışma alanında bir araya getirmenize yardımcı olur.'],
+  ['Kurulum zor mu?', 'Hayır. Teknik kurulum gerektirmez. Hesabınızı açın, şirketinizi oluşturun ve mevcut verilerinizi içe aktarın.'],
 ]
 
 export default function Landing() {
   const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [leadState, dispatchLead] = useReducer(leadFormReducer, initialLeadFormState)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const navigate = useNavigate()
 
@@ -44,10 +45,10 @@ export default function Landing() {
     navigate('/dashboard')
   }
 
-  const handleSubmit = () => {
-    if (!email || !email.includes('@')) return
-    setSubmitted(true)
-    setEmail('')
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const saved = await runFounder50Submission(email, dispatchLead)
+    if (saved) setEmail('')
   }
 
   return (
@@ -69,7 +70,7 @@ export default function Landing() {
               Octo’ya Gir
             </button>
             <button onClick={openDemo} className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-crimson hover:text-crimson">
-              Demoyu gör
+              Demoyu Gör
             </button>
           </nav>
         </div>
@@ -79,42 +80,47 @@ export default function Landing() {
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 md:grid-cols-2 md:pt-24">
         <div>
           <div className="animate-rise">
-            <Label>Türk KOBİleri için yapay zeka is asistanı</Label>
+            <Label>Türk KOBİ’leri için bütünleşik arka ofis sistemi</Label>
           </div>
           <h1 className="animate-rise mt-6 font-display text-5xl leading-tight text-ink md:text-6xl" style={{ animationDelay: '60ms' }}>
             Bir şirketi yönetmek için <span className="italic text-crimson">koca bir ekip</span> gerekmez.
           </h1>
           <p className="animate-rise mt-6 text-lg leading-relaxed text-ink-soft" style={{ animationDelay: '140ms' }}>
-            Mali müşavirinize, avukatınıza, muhasebecinize ayrı ayrı sormak yerine — <span className="text-ink font-medium">tek bir bakış.</span> Octo işinizin her tarafini ayni anda görür ve size ne yapmaniz gerektiğini söyler.
+            Finans, vergi, İK ve diğer arka ofis süreçlerinizi tek yerde yönetin. Octo katmanları birlikte değerlendirir; yaklaşan riskleri, ödeme çakışmalarını ve eksikleri zamanında gösterir.
           </p>
 
           <div className="animate-rise mt-8" style={{ animationDelay: '220ms' }}>
-            {!submitted ? (
-              <div className="flex flex-col gap-3 sm:flex-row">
+            {leadState.status !== 'success' ? (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  onChange={event => {
+                    setEmail(event.target.value)
+                    if (leadState.status === 'error') dispatchLead({ type: 'edit' })
+                  }}
                   placeholder="Şirket e-postanız"
+                  disabled={leadState.status === 'submitting'}
                   className="flex-1 rounded-full border border-line bg-surface px-5 py-3 text-sm text-ink outline-none transition-colors focus:border-crimson"
                 />
                 <button
-                  onClick={handleSubmit}
-                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-crimson px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
+                  type="submit"
+                  disabled={leadState.status === 'submitting'}
+                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-crimson px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60"
                 >
-                  Kurucu 50ye katıl
+                  {leadState.status === 'submitting' ? 'Kaydediliyor…' : 'Kurucu 50’ye katıl'}
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
-              </div>
+              </form>
             ) : (
               <div className="flex items-center gap-3 rounded-full border border-positive/30 bg-positive/10 px-5 py-3">
                 <Check size={18} className="text-positive" />
-                <span className="text-sm text-ink">Tesekkurler — Kurucu 50 arasindaki yerinizi ayırdık.</span>
+                <span className="text-sm text-ink">Teşekkürler — Kurucu 50 başvurunuzu aldık.</span>
               </div>
             )}
+            {leadState.status === 'error' && <p role="alert" className="mt-3 text-sm text-crimson">{leadState.message}</p>}
             <p className="mt-3 text-sm text-ink-mute">
-              İlk 50 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> + ürünü birlikte şekillendirin.
+              İlk 50 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> ve ürünü birlikte şekillendirme fırsatı.
             </p>
           </div>
         </div>
@@ -134,28 +140,28 @@ export default function Landing() {
                 <span className="label text-ink-mute">Günlük Brifing — Pazartesi</span>
               </div>
               <p className="text-sm leading-relaxed text-ink-soft">
-                Bu hafta üç şeye dikkat edin. Nakit pozisyonunuz güçlü ama Perşembe iki odeme üst üste biniyor.
+                Bu hafta üç noktaya dikkat edin. Nakit pozisyonunuz güçlü ancak perşembe iki ödeme üst üste biniyor.
               </p>
               <div className="mt-5 space-y-3">
                 <div className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
                   <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-crimson" />
                   <div>
                     <span className="label text-crimson">Finans</span>
-                    <p className="mt-1 text-sm text-ink">Nakit 879.400 TL — 4 ay pist. Perşembe 142.800 TL çıkış.</p>
+                    <p className="mt-1 text-sm text-ink">Nakit 879.400 TL — 4 aylık hareket alanı. Perşembe 142.800 TL çıkış.</p>
                   </div>
                 </div>
                 <div className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
                   <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-warn" />
                   <div>
                     <span className="label text-warn">Vergi</span>
-                    <p className="mt-1 text-sm text-ink">KDV beyannamesi 2 gun içinde — 228.300 TL.</p>
+                    <p className="mt-1 text-sm text-ink">KDV beyannamesi 2 gün içinde — 228.300 TL.</p>
                   </div>
                 </div>
                 <div className="flex gap-3 rounded-lg border border-line bg-paper/40 p-3">
                   <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-ink-mute" />
                   <div>
-                    <span className="label text-ink-mute">Hukuk</span>
-                    <p className="mt-1 text-sm text-ink">Tedarikçi sözleşmesi 12 gün sonra otomatik yenileniyor.</p>
+                    <span className="label text-ink-mute">İnsan Kaynakları</span>
+                    <p className="mt-1 text-sm text-ink">SGK prim ödeme tarihi 5 gün sonra.</p>
                   </div>
                 </div>
               </div>
@@ -181,11 +187,11 @@ export default function Landing() {
               </div>
               <div className="space-y-4">
                 {[
-                  'Müşaviri ara — geri dönmesini bekle',
-                  'Avukata aynı konuyu tekrar anlat',
-                  'Muhasebeden rakamları iste',
-                  'Parçaları kafanda birleştirmeye çalış',
-                  'Bir seyi kaçırdığını geç fark et',
+                  'Müşavirinizi arayın — geri dönüşünü bekleyin',
+                  'Avukatınıza aynı konuyu tekrar anlatın',
+                  'Muhasebeden rakamları isteyin',
+                  'Parçaları zihninizde birleştirmeye çalışın',
+                  'Bir şeyi kaçırdığınızı geç fark edin',
                 ].map((t, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-ink-soft">
                     <span className="font-mono text-xs text-ink-mute">{String(i + 1).padStart(2, '0')}</span>
@@ -201,10 +207,10 @@ export default function Landing() {
               </div>
               <div className="flex h-full flex-col justify-center">
                 <p className="font-display text-2xl leading-snug text-ink">
-                  Telefonunuzu açın. Finans, vergi ve hukuk — hepsi tek bir brifingde, tek bir bakışta.
+                  Telefonunuzu açın. Finans, vergi ve insan kaynakları — hepsi tek bir brifingde, tek bir bakışta.
                 </p>
                 <p className="mt-4 text-sm text-ink-soft">
-                  Birbirinden kopuk uzmanlar değil, birlikte düşünen tek bir zekâ.
+                  Birbirinden kopuk süreçler değil, birlikte çalışan tek bir sistem.
                 </p>
               </div>
             </div>
@@ -216,13 +222,13 @@ export default function Landing() {
       <section id="nasil">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <Label>Nasıl çalışır</Label>
-          <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight text-ink">Sabah 8de telefonunuzu açın. Her şeyi bilin.</h2>
+          <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight text-ink">Sabah 8’de telefonunuzu açın. Gününüzü tek görünümden yönetin.</h2>
           <div className="mt-12 grid gap-8 md:grid-cols-4">
             {[
-              ['01', 'Verileriniz Octoda', 'Fatura, odeme, sözleşme, bordro — hepsi tek sistemde.'],
-              ['02', 'Katmanlar işler', 'Her alan kendi işini analiz eder — derin ve spesifik.'],
-              ['03', 'Orkestratör bağlar', 'Yapay zeka hepsini okur. Görünmeyeni görür.'],
-              ['04', 'Siz karar verin', 'Sabah brifingi. Net öneriler. Müşavirinize hazır dosya.'],
+              ['01', 'Verileriniz Octo’da', 'Fatura, ödeme, sözleşme ve bordro kayıtları tek sistemde.'],
+              ['02', 'Katmanlar değerlendirir', 'Her alan kendi süreçlerini inceler ve eksikleri belirler.'],
+              ['03', 'Octo bağlantıları kurar', 'Finans, vergi ve İK verilerini aynı şirket bağlamında değerlendirir.'],
+              ['04', 'Siz karar verirsiniz', 'Yaklaşan yükümlülükleri ve gerekli adımları tek görünümde izlersiniz.'],
             ].map(([n, t, d]) => (
               <div key={n}>
                 <div className="font-mono text-4xl text-line">{n}</div>
@@ -237,12 +243,15 @@ export default function Landing() {
       {/* ARMS */}
       <section id="kollar" className="border-t border-line bg-surface/40">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <Label>Sekiz kol, tek orkestrasyon</Label>
+          <Label>Sekiz kol, tek akıl</Label>
           <h2 className="mt-4 max-w-2xl font-display text-4xl text-ink">Bir beyin, sekiz uzmanlık alanı.</h2>
           <div className="mt-12 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-            {arms.map(({ icon: Icon, name, desc }) => (
+            {arms.map(({ icon: Icon, name, desc, status }) => (
               <div key={name} className="group bg-surface p-7 transition-colors hover:bg-surface-2">
-                <Icon size={22} className="text-crimson" />
+                <div className="flex items-start justify-between gap-3">
+                  <Icon size={22} className="text-crimson" />
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status === 'Aktif' ? 'border-positive/20 bg-positive/10 text-positive' : 'border-line bg-surface-2 text-ink-mute'}`}>{status}</span>
+                </div>
                 <h3 className="mt-4 font-display text-xl text-ink">{name}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-soft">{desc}</p>
               </div>
@@ -258,17 +267,17 @@ export default function Landing() {
             <div>
               <Label>Neden şimdi</Label>
               <h2 className="mt-4 font-display text-4xl leading-tight text-ink">
-                Türkiye için, Türkiyeden.
+                Türkiye için, Türkiye’den.
               </h2>
               <p className="mt-5 text-base leading-relaxed text-ink-soft">
-                3.7 milyon KOBI aynı sorunu yaşıyor: parçalanmış bilgi, geç kalan kararlar, sürekli sürpriz. Octo bu gerçekliği yaşayan bir ekip tarafindan, Turk mevzuatına göre sıfırdan inşa ediliyor.
+                KOBİ’ler aynı temel sorunla karşılaşıyor: dağınık bilgi, geciken kararlar ve beklenmedik yükümlülükler. Octo, Türk işletmelerinin günlük finans, vergi ve insan kaynakları süreçlerine göre geliştiriliyor.
               </p>
             </div>
             <div className="flex flex-col justify-center gap-6">
               {[
-                ['Türkiye-yerli mevzuat derinliği', '300+ yıllık düzenleme değişikliği takip edilir. Mevzuat degisti, Octo zaten biliyor.'],
-                ['Araçlarınızın üstünde', 'ERPnizi değiştirmez — verinizi okur, eksiğini söyler.'],
-                ['Bileşik veri hendeği', '6. aydan sonra Octo işinizi sıfırdan başlayan herkesten daha iyi tanır.'],
+                ['Türk iş süreçlerine göre', 'Vergi, SGK, bordro ve cari süreçleri Türkiye’de kullanılan kavramlar ve iş akışlarıyla ele alınır.'],
+                ['Geçiş sizin kontrolünüzde', 'Mevcut kayıtlarınızı içe aktarabilir ve Octo’ya kendi hızınızda geçebilirsiniz.'],
+                ['Katmanlar birlikte çalışır', 'Finans, vergi ve İK verileri aynı şirket bağlamında değerlendirilir; yaklaşan yükümlülükler ve çakışmalar tek yerde görünür.'],
               ].map(([t, d]) => (
                 <div key={t} className="border-l-2 border-crimson pl-5">
                   <h3 className="font-medium text-ink">{t}</h3>
@@ -286,14 +295,9 @@ export default function Landing() {
           <Label>Kurucu 50</Label>
           <h2 className="mt-4 font-display text-4xl text-ink">İlk 50 şirket arasına katılın.</h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-soft">
-            Kurucu uyeler ömür boyu %50 indirim alıyor ve ürünü birlikte şekillendiriyor. Şu an erken erişim listesi açılıyor.
+            Kurucu üyeler ömür boyu %50 indirim alıyor ve ürünü birlikte şekillendiriyor. Erken erişim listesi başvurulara açık.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
-            <div className="h-2 w-48 overflow-hidden rounded-full bg-line">
-              <div className="h-full w-1/4 rounded-full bg-crimson" />
-            </div>
-            <span className="font-mono text-sm text-ink-mute">12 / 50 dolu</span>
-          </div>
+          <p className="mt-8 text-sm text-ink-mute">Erken erişim başvuruları sınırlı sayıda şirket için değerlendiriliyor.</p>
         </div>
       </section>
 
@@ -326,10 +330,10 @@ export default function Landing() {
         <div className="mx-auto max-w-2xl px-6 py-24 text-center">
           <p className="font-mono text-sm uppercase tracking-widest text-crimson">Koca bir arka ofis. Tek bir akıl.</p>
           <h2 className="mt-6 font-display text-5xl italic text-paper">İşiniz düşünmeye başlasın.</h2>
-          <p className="mt-4 text-sm text-paper/50">İlk 50 şirkete ömür boyu %50 indirim. KVKK uyumlu. Kurulum gerektirmez.</p>
+          <p className="mt-4 text-sm text-paper/50">İlk 50 şirkete ömür boyu %50 indirim. KVKK gereklilikleri gözetilerek tasarlandı. Teknik kurulum gerektirmez.</p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <button onClick={openDemo} className="inline-flex items-center gap-2 rounded-full bg-crimson px-7 py-3.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5">
-              Demoyu görün <ArrowRight size={16} />
+              Demoyu Gör <ArrowRight size={16} />
             </button>
             <button onClick={startEmpty} className="text-sm text-paper/50 underline-offset-4 transition-colors hover:text-paper/80 hover:underline">
               Octo’ya Gir
@@ -345,7 +349,7 @@ export default function Landing() {
             <Wordmark className="text-xl" />
             <span>Koca bir arka ofis. Tek bir akıl.</span>
           </div>
-          <span className="font-mono">2026 Octo · İzmir, Türkiye · KVKK uyumlu</span>
+          <span className="font-mono">2026 Octo · İzmir, Türkiye · KVKK gereklilikleri gözetilerek tasarlandı</span>
         </div>
       </footer>
 
