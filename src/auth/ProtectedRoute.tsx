@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import { useAuth } from './authContext'
 import { Wordmark } from '../shared/utils/ui'
+import { protectedRouteDecision } from './routeProtection'
 
 function AuthStatusScreen({ error }: { error?: string }) {
   return (
@@ -36,9 +37,10 @@ function AuthStatusScreen({ error }: { error?: string }) {
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading, error } = useAuth()
   const location = useLocation()
+  const decision = protectedRouteDecision({ loading, error, hasSession: Boolean(session) })
 
-  if (loading) return <AuthStatusScreen />
-  if (error && !session) return <AuthStatusScreen error={error} />
-  if (!session) return <Navigate to="/login" replace state={{ from: location }} />
+  if (decision === 'loading') return <AuthStatusScreen />
+  if (decision === 'error') return <AuthStatusScreen error={error ?? undefined} />
+  if (decision === 'redirect') return <Navigate to="/login" replace state={{ from: location }} />
   return children
 }

@@ -12,6 +12,11 @@ import LoginPage from './auth/LoginPage'
 import ProtectedRoute from './auth/ProtectedRoute'
 import CompanyRequiredRoute from './company/CompanyRequiredRoute'
 import CompanySetupPage from './company/CompanySetupPage'
+import SignUpPage from './auth/SignUpPage'
+import ForgotPasswordPage from './auth/ForgotPasswordPage'
+import ResetPasswordPage from './auth/ResetPasswordPage'
+import AccountSettingsPage from './auth/AccountSettingsPage'
+import { ACCOUNT_PATH } from './auth/routeProtection'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -28,6 +33,10 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path={ACCOUNT_PATH} element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
       <Route path="/setup/company" element={<ProtectedRoute><CompanySetupPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><CompanyRequiredRoute><Layout /></CompanyRequiredRoute></ProtectedRoute>}>
         <Route index element={<Dashboard />} />

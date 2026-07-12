@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ThemeToggle, Wordmark } from '../shared/utils/ui'
 import { useAuth } from './authContext'
 import { authErrorMessage } from './authErrors'
+import { ACCOUNT_PATH } from './routeProtection'
 
 interface LoginLocationState {
   from?: {
@@ -15,7 +16,7 @@ interface LoginLocationState {
 
 function destinationFromState(state: unknown): string {
   const from = (state as LoginLocationState | null)?.from
-  if (!from?.pathname?.startsWith('/dashboard')) return '/dashboard'
+  if (!from?.pathname?.startsWith('/dashboard') && from?.pathname !== ACCOUNT_PATH) return '/dashboard'
   return `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
 }
 
@@ -108,7 +109,10 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-ink">Şifre</label>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <label htmlFor="login-password" className="block text-sm font-medium text-ink">Şifre</label>
+                <Link to="/forgot-password" className="focus-ring rounded text-xs font-medium text-crimson">Şifremi unuttum</Link>
+              </div>
               <input
                 id="login-password"
                 type="password"
@@ -129,6 +133,10 @@ export default function LoginPage() {
               <LogIn size={16} /> {submitting ? 'Giriş yapılıyor…' : 'Giriş yap'}
             </button>
           </form>
+
+          <p className="mt-5 text-center text-sm text-ink-mute">
+            Octo’da yeni misiniz? <Link to="/signup" className="focus-ring rounded font-medium text-crimson">Hesap oluşturun</Link>
+          </p>
 
           <Link to="/" className="focus-ring mt-5 inline-flex items-center gap-1.5 rounded text-sm text-ink-mute hover:text-ink">
             <ArrowLeft size={14} /> Ana sayfaya dön

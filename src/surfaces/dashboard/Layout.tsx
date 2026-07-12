@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   Receipt,
+  Settings,
   Users,
   Wallet,
   type LucideIcon,
@@ -113,6 +114,14 @@ function Navigation({
             <Database size={17} className="shrink-0" />
             <span>Verileri Yönet</span>
           </button>
+          <NavLink
+            to="/account"
+            onClick={onNavigate}
+            className="focus-ring mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Settings size={17} className="shrink-0" />
+            <span>Hesap Ayarları</span>
+          </NavLink>
           <button
             type="button"
             onClick={onLogout}
