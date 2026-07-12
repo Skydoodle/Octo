@@ -7,6 +7,10 @@ describe('landing page credibility copy', () => {
     expect(landingSource).toContain('Sekiz kol, tek akıl')
     expect(landingSource).toContain('Türkiye için, Türkiye’den.')
     expect(landingSource).toContain('Octo’ya Gir')
+    expect(landingSource).toContain('Kurucu 100’e katıl')
+    expect(landingSource).toContain('Teşekkürler — Kurucu 100 başvurunuzu aldık.')
+    expect(landingSource).toContain('İlk 100 şirket arasına katılın.')
+    expect(landingSource).not.toContain('Kurucu 50')
   })
 
   it('marks active and roadmap layers accurately', () => {

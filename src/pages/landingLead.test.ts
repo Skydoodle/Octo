@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import migrationSource from '../../supabase/migrations/20260712174500_founder_50_leads.sql?raw'
+import fixMigrationSource from '../../supabase/migrations/20260712183500_fix_founder_50_lead_submission.sql?raw'
 import {
   initialLeadFormState,
   leadFormReducer,
@@ -8,7 +9,7 @@ import {
   type LeadFormAction,
 } from './landingLead'
 
-describe('Kurucu 50 lead submission', () => {
+describe('Kurucu 100 lead submission', () => {
   it('enters a loading state when submission begins', () => {
     expect(leadFormReducer(initialLeadFormState, { type: 'submit' })).toEqual({ status: 'submitting', message: null })
   })
@@ -46,5 +47,7 @@ describe('Kurucu 50 lead submission', () => {
     await expect(submitFounder50Lead('founder@example.com', rpc)).resolves.toEqual({ success: true, validationError: false })
     await expect(submitFounder50Lead('founder@example.com', rpc)).resolves.toEqual({ success: true, validationError: false })
     expect(migrationSource).toContain('on conflict (normalized_email) do nothing')
+    expect(fixMigrationSource).toContain('normalized_lead_email')
+    expect(fixMigrationSource).not.toContain('normalized_email text :=')
   })
 })

@@ -108,19 +108,19 @@ export default function Landing() {
                   disabled={leadState.status === 'submitting'}
                   className="group inline-flex items-center justify-center gap-2 rounded-full bg-crimson px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60"
                 >
-                  {leadState.status === 'submitting' ? 'Kaydediliyor…' : 'Kurucu 50’ye katıl'}
+                  {leadState.status === 'submitting' ? 'Kaydediliyor…' : 'Kurucu 100’e katıl'}
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
               </form>
             ) : (
               <div className="flex items-center gap-3 rounded-full border border-positive/30 bg-positive/10 px-5 py-3">
                 <Check size={18} className="text-positive" />
-                <span className="text-sm text-ink">Teşekkürler — Kurucu 50 başvurunuzu aldık.</span>
+                <span className="text-sm text-ink">Teşekkürler — Kurucu 100 başvurunuzu aldık.</span>
               </div>
             )}
             {leadState.status === 'error' && <p role="alert" className="mt-3 text-sm text-crimson">{leadState.message}</p>}
             <p className="mt-3 text-sm text-ink-mute">
-              İlk 50 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> ve ürünü birlikte şekillendirme fırsatı.
+              İlk 100 şirkete <span className="text-ink-soft font-medium">ömür boyu %50 indirim</span> ve ürünü birlikte şekillendirme fırsatı.
             </p>
           </div>
         </div>
@@ -292,8 +292,8 @@ export default function Landing() {
       {/* SOCIAL PROOF / KURUCU 50 */}
       <section className="border-t border-line bg-surface/40">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
-          <Label>Kurucu 50</Label>
-          <h2 className="mt-4 font-display text-4xl text-ink">İlk 50 şirket arasına katılın.</h2>
+          <Label>Kurucu 100</Label>
+          <h2 className="mt-4 font-display text-4xl text-ink">İlk 100 şirket arasına katılın.</h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-soft">
             Kurucu üyeler ömür boyu %50 indirim alıyor ve ürünü birlikte şekillendiriyor. Erken erişim listesi başvurulara açık.
           </p>
@@ -330,7 +330,7 @@ export default function Landing() {
         <div className="mx-auto max-w-2xl px-6 py-24 text-center">
           <p className="font-mono text-sm uppercase tracking-widest text-crimson">Koca bir arka ofis. Tek bir akıl.</p>
           <h2 className="mt-6 font-display text-5xl italic text-paper">İşiniz düşünmeye başlasın.</h2>
-          <p className="mt-4 text-sm text-paper/50">İlk 50 şirkete ömür boyu %50 indirim. KVKK gereklilikleri gözetilerek tasarlandı. Teknik kurulum gerektirmez.</p>
+          <p className="mt-4 text-sm text-paper/50">İlk 100 şirkete ömür boyu %50 indirim. KVKK gereklilikleri gözetilerek tasarlandı. Teknik kurulum gerektirmez.</p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <button onClick={openDemo} className="inline-flex items-center gap-2 rounded-full bg-crimson px-7 py-3.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5">
               Demoyu Gör <ArrowRight size={16} />
