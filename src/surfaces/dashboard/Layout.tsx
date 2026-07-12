@@ -11,6 +11,7 @@ import {
   Menu,
   Receipt,
   Settings,
+  Handshake,
   Users,
   Wallet,
   type LucideIcon,
@@ -49,6 +50,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'İşletme',
     items: [
+      { to: '/dashboard/satis', icon: Handshake, label: 'Satış ve Teklifler' },
       { to: '/dashboard/finans', icon: Wallet, label: 'Finans' },
       { to: '/dashboard/vergi', icon: Receipt, label: 'Vergi' },
       { to: '/dashboard/ik', icon: Users, label: 'İnsan & Bordro' },
@@ -58,6 +60,7 @@ const navGroups: NavGroup[] = [
 ]
 
 const pageTitles: Array<[string, string]> = [
+  ['/dashboard/satis', 'Satış ve Teklifler'],
   ['/dashboard/yapilacaklar', 'Yapılacaklar'],
   ['/dashboard/30-gun', '30 Gün'],
   ['/dashboard/finans', 'Finans'],

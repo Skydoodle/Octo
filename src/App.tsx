@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Navigate, Routes, Route } from "react-router-dom"
 import Landing from "./pages/Landing"
 import Layout from "./surfaces/dashboard/Layout"
 import Dashboard from "./surfaces/dashboard/Dashboard"
@@ -20,6 +20,10 @@ import { ACCOUNT_PATH } from './auth/routeProtection'
 import TeamSettingsPage from './team/TeamSettingsPage'
 import TeamOwnerRoute from './team/TeamOwnerRoute'
 import InvitePage from './team/InvitePage'
+import SalesLayout from './layers/sales/ui/SalesLayout'
+import FirmsPage from './layers/sales/ui/FirmsPage'
+import FirmDetailPage from './layers/sales/ui/FirmDetailPage'
+import ContactsPage from './layers/sales/ui/ContactsPage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -52,6 +56,12 @@ export default function App() {
         <Route path="hukuk" element={<Placeholder name="Hukuk" />} />
         <Route path="ik" element={<IK />} />
         <Route path="operasyon" element={<Operasyon />} />
+        <Route path="satis" element={<SalesLayout />}>
+          <Route index element={<Navigate to="firmalar" replace />} />
+          <Route path="firmalar" element={<FirmsPage />} />
+          <Route path="firmalar/:partyId" element={<FirmDetailPage />} />
+          <Route path="kisiler" element={<ContactsPage />} />
+        </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />
       </Route>

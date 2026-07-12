@@ -156,4 +156,9 @@ describe('CRM repository', () => {
       cause,
     })
   })
+
+  it('maps the one-primary-contact constraint to a safe conflict message', () => {
+    const cause = { code: '23505', message: 'duplicate key', constraint: 'business_contacts_one_active_primary' }
+    expect(mapCRMError(cause)).toMatchObject({ code: 'conflict', message: 'Bu ticari taraf için zaten birincil bir kişi bulunuyor.' })
+  })
 })

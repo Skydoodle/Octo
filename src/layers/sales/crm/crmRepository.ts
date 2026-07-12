@@ -125,7 +125,7 @@ export function mapCRMError(error: unknown): CRMRepositoryError {
   if (fields.code === '23505' && (fields.constraint === 'business_parties_active_tax_id_unique' || lowerMessage.includes('tax id'))) {
     return { code: 'duplicate_tax_id', message: 'Bu vergi kimliğiyle aktif bir ticari taraf zaten bulunuyor.', cause: error }
   }
-  if (fields.code === '23505' && lowerMessage.includes('primary')) {
+  if (fields.code === '23505' && (fields.constraint === 'business_contacts_one_active_primary' || lowerMessage.includes('primary'))) {
     return { code: 'conflict', message: 'Bu ticari taraf için zaten birincil bir kişi bulunuyor.', cause: error }
   }
   if (fields.code === '42501' || fields.code === 'PGRST301') {
@@ -226,18 +226,18 @@ export function createCrmRepository(client: CRMDataClient, now: () => string = (
       if (!filters.includeArchived) query = query.is('archived_at', null)
       if (filters.relationshipStatus) query = query.eq('relationship_status', filters.relationshipStatus)
       if (filters.search?.trim()) query = query.ilike('normalized_name', `%${normalizeName(filters.search)}%`)
-      const { data, error } = await query.order('display_name', { ascending: true })
+      const { data, error } = await query.order('updated_at', { ascending: false })
       if (error) return { data: null, error: mapCRMError(error) }
       return { data: (Array.isArray(data) ? data : []).map(mapBusinessParty), error: null }
     },
 
-    async getBusinessParty(companyId: string, partyId: string): Promise<CRMRepositoryResult<BusinessParty>> {
-      const { data, error } = await client.from('business_parties')
+    async getBusinessParty(companyId: string, partyId: string, includeArchived = false): Promise<CRMRepositoryResult<BusinessParty>> {
+      let query = client.from('business_parties')
         .select('*, business_party_roles(role)')
         .eq('company_id', companyId)
         .eq('id', partyId)
-        .is('archived_at', null)
-        .maybeSingle()
+      if (!includeArchived) query = query.is('archived_at', null)
+      const { data, error } = await query.maybeSingle()
       if (error) return { data: null, error: mapCRMError(error) }
       if (!data) return { data: null, error: { code: 'not_found', message: 'Kayıt bulunamadı.', cause: null } }
       return { data: mapBusinessParty(data), error: null }
