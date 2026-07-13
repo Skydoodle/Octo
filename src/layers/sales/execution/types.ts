@@ -20,7 +20,7 @@ export interface SalesOpportunityCreateInput {partyId:string;pipelineId:string;s
 export type SalesOpportunityUpdateInput=Partial<Omit<SalesOpportunityCreateInput,'partyId'|'pipelineId'|'stageId'|'ownerUserId'>>
 export interface SalesActivityCreateInput {activityType:SalesActivityType;leadId?:string|null;partyId?:string|null;contactId?:string|null;opportunityId?:string|null;ownerUserId:string;assignedTo?:string|null;title?:string|null;description?:string|null;outcome?:string|null;activityAt?:string;dueAt?:string|null;completedAt?:string|null;nextAction?:string|null;nextActionAt?:string|null;visibility?:SalesActivityVisibility}
 export type SalesActivityUpdateInput=Partial<Omit<SalesActivityCreateInput,'ownerUserId'>>
-export interface LeadConversionInput {leadId:string;existingPartyId?:string|null;newPartyDisplayName?:string|null;createContact?:boolean;opportunityTitle?:string|null;pipelineId?:string|null;stageId?:string|null}
+export interface LeadConversionInput {leadId:string;existingPartyId?:string|null;newPartyDisplayName?:string|null;createContact?:boolean;opportunityTitle?:string|null;pipelineId?:string|null;stageId?:string|null;expectedValue?:number|null;currency?:Currency;ownerUserId?:string|null;expectedCloseDate?:string|null;productInterest?:string|null;nextAction?:string|null;nextActionAt?:string|null}
 export interface LeadConversionResult {partyId:string;contactId:string|null;opportunityId:string}
 export interface StageTransitionInput {opportunityId:string;destinationStageId:string;reason?:string|null;lossReason?:string|null;nextAction?:string|null;nextActionAt?:string|null}
 export interface OpportunityContactInput {contactId:string;relationshipRole?:string|null;isPrimary?:boolean}

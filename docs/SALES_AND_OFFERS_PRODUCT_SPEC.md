@@ -303,13 +303,13 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Import | Firma/Kişi Excel ve CSV | Implemented | XLSX, repository | 1 | Eşleme, önizleme, kısmi sonuç |
 | Genel Bakış | Eylem odaklı satış özeti | Designed | Fırsat/aktivite/teklif | 2–3 | Sahte metrik yok |
 | Potansiyel Müşteri | Veri modeli, repository ve atomik dönüşüm | Partially implemented | Kanonik Firma/Kişi | 2 | Müşteri ekranı yok |
-| Potansiyel Müşteri | Liste, detay ve nitelendirme ekranları | Designed | Execution veri temeli | 2 | Henüz UI yok |
+| Potansiyel Müşteri | Liste, detay ve nitelendirme ekranları | Implemented | Execution veri temeli | 2 | Atomik dönüşüm akışı dahil |
 | Fırsat | Veri modeli, repository ve sonraki eylem kuralı | Partially implemented | Firma/Kişi/Pipeline | 2 | Müşteri ekranı yok |
-| Fırsat | Liste ve detay ekranları | Designed | Execution veri temeli | 2 | Henüz UI yok |
+| Fırsat | Liste ve detay ekranları | Implemented | Execution veri temeli | 2 | Kişiler, aktiviteler ve aşama geçmişi dahil |
 | Pipeline | Pipeline/aşama verisi ve varsayılan provisioning | Partially implemented | Şirket ve Fırsat | 2 | Kanban/liste UI yok |
-| Pipeline | Kanban ve liste ekranları | Designed | Execution veri temeli | 2 | Kayıp nedeni backend’de zorunlu |
+| Pipeline | Kanban ve liste ekranları | Implemented | Execution veri temeli | 2 | Kayıp nedeni backend’de ve UI’da zorunlu |
 | Aktivite | Aktivite/görev verisi, visibility ve repository | Partially implemented | Lead/Firma/Fırsat | 2/5 | Müşteri ekranı yok |
-| Aktivite | Aktivite, görev ve birleşik timeline ekranları | Designed | Execution veri temeli ve entegrasyonlar | 2/5 | Dış gönderim onaylı |
+| Aktivite | Aktivite, görev ve birleşik timeline ekranları | Implemented | Execution veri temeli | 2/5 | Kayıt tutar; dış gönderim yapmaz |
 | Teklif | Versiyonlu teklif ve PDF | Designed | Fırsat, ürün/maliyet | 3 | Yalnız PDF değildir |
 | Teklif | Onay, indirim ve marj kontrolü | Designed | Finans/Satın Alma | 3/5 | Maliyet bağlantısı gerekir |
 | Satış Siparişi | Tekliften sipariş ve karşılama | Designed | Teklif/Operasyon | 4 | Satın alma siparişi değildir |

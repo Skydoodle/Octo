@@ -24,6 +24,10 @@ import SalesLayout from './layers/sales/ui/SalesLayout'
 import FirmsPage from './layers/sales/ui/FirmsPage'
 import FirmDetailPage from './layers/sales/ui/FirmDetailPage'
 import ContactsPage from './layers/sales/ui/ContactsPage'
+import { LeadDetailPage, LeadsPage } from './layers/sales/execution/ui/LeadPages'
+import { OpportunityDetailPage, OpportunitiesPage } from './layers/sales/execution/ui/OpportunityPages'
+import PipelinePage from './layers/sales/execution/ui/PipelinePage'
+import ActivitiesPage from './layers/sales/execution/ui/ActivitiesPage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -61,6 +65,12 @@ export default function App() {
           <Route path="firmalar" element={<FirmsPage />} />
           <Route path="firmalar/:partyId" element={<FirmDetailPage />} />
           <Route path="kisiler" element={<ContactsPage />} />
+          <Route path="potansiyel-musteriler" element={<LeadsPage />} />
+          <Route path="potansiyel-musteriler/:leadId" element={<LeadDetailPage />} />
+          <Route path="firsatlar" element={<OpportunitiesPage />} />
+          <Route path="firsatlar/:opportunityId" element={<OpportunityDetailPage />} />
+          <Route path="pipeline" element={<PipelinePage />} />
+          <Route path="aktiviteler" element={<ActivitiesPage />} />
         </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />
