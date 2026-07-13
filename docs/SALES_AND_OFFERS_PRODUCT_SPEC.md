@@ -310,8 +310,11 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Pipeline | Kanban ve liste ekranları | Implemented | Execution veri temeli | 2 | Kayıp nedeni backend’de ve UI’da zorunlu |
 | Aktivite | Aktivite/görev verisi, visibility ve repository | Partially implemented | Lead/Firma/Fırsat | 2/5 | Müşteri ekranı yok |
 | Aktivite | Aktivite, görev ve birleşik timeline ekranları | Implemented | Execution veri temeli | 2/5 | Kayıt tutar; dış gönderim yapmaz |
-| Teklif | Versiyonlu teklif ve PDF | Designed | Fırsat, ürün/maliyet | 3 | Yalnız PDF değildir |
-| Teklif | Onay, indirim ve marj kontrolü | Designed | Finans/Satın Alma | 3/5 | Maliyet bağlantısı gerekir |
+| Teklif | Veri modeli ve atomik oluşturma | Partially implemented | Fırsat ve kanonik Firma/Kişi | 3 | Müşteri ekranı yok |
+| Teklif | Versiyon ve durum geçmişi temeli | Partially implemented | Teklif veri modeli | 3 | Versiyonlar değiştirilemez |
+| Teklif | Liste, detay ve düzenleme ekranları | Designed | Teklif veri temeli | 3 | Henüz UI yok |
+| Teklif | PDF üretimi | Designed | Teklif UI ve belge şablonu | 3 | Henüz uygulanmadı |
+| Teklif | Yapılandırılabilir onay kuralları | Designed | Rol ve maliyet bağlantıları | 3/5 | V1 yalnız owner onayı temeli içerir |
 | Satış Siparişi | Tekliften sipariş ve karşılama | Designed | Teklif/Operasyon | 4 | Satın alma siparişi değildir |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |
 | Finans bağlantısı | Fatura, tahsilat, forecast-to-cash | Deferred | Finans entegrasyonu | 5 | Pipeline gelir değildir |
