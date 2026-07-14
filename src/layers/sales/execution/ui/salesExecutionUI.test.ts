@@ -147,15 +147,17 @@ describe("sales execution UI routes and navigation", () => {
       "Fırsatlar",
       "Pipeline",
       "Aktiviteler ve Görevler",
+      "Teklifler",
     ];
     labels.reduce((position, label) => {
-      const next = salesLayoutSource.indexOf(label);
+      const next =
+        label === "Teklifler"
+          ? salesLayoutSource.lastIndexOf(label)
+          : salesLayoutSource.indexOf(label);
       expect(next).toBeGreaterThan(position);
       return next;
     }, -1);
-    expect(salesLayoutSource).not.toMatch(
-      /satis\/teklif|satis\/siparis|copilot/i,
-    );
+    expect(salesLayoutSource).not.toMatch(/satis\/siparis|copilot/i);
   });
 });
 

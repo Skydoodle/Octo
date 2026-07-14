@@ -28,6 +28,7 @@ import { LeadDetailPage, LeadsPage } from './layers/sales/execution/ui/LeadPages
 import { OpportunityDetailPage, OpportunitiesPage } from './layers/sales/execution/ui/OpportunityPages'
 import PipelinePage from './layers/sales/execution/ui/PipelinePage'
 import ActivitiesPage from './layers/sales/execution/ui/ActivitiesPage'
+import { QuoteCreatePage, QuoteDetailPage, QuoteRevisionPage, QuotesPage } from './layers/sales/quotes/ui/QuotePages'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -38,7 +39,6 @@ function Placeholder({ name }: { name: string }) {
     </div>
   )
 }
-
 export default function App() {
   return (
     <Routes>
@@ -71,6 +71,10 @@ export default function App() {
           <Route path="firsatlar/:opportunityId" element={<OpportunityDetailPage />} />
           <Route path="pipeline" element={<PipelinePage />} />
           <Route path="aktiviteler" element={<ActivitiesPage />} />
+          <Route path="teklifler" element={<QuotesPage />} />
+          <Route path="teklifler/yeni" element={<QuoteCreatePage />} />
+          <Route path="teklifler/:quoteId" element={<QuoteDetailPage />} />
+          <Route path="teklifler/:quoteId/revizyon" element={<QuoteRevisionPage />} />
         </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />

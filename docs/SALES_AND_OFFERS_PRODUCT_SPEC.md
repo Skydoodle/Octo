@@ -312,8 +312,11 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Aktivite | Aktivite, görev ve birleşik timeline ekranları | Implemented | Execution veri temeli | 2/5 | Kayıt tutar; dış gönderim yapmaz |
 | Teklif | Veri modeli ve atomik oluşturma | Partially implemented | Fırsat ve kanonik Firma/Kişi | 3 | Müşteri ekranı yok |
 | Teklif | Versiyon ve durum geçmişi temeli | Partially implemented | Teklif veri modeli | 3 | Versiyonlar değiştirilemez |
-| Teklif | Liste, detay ve düzenleme ekranları | Designed | Teklif veri temeli | 3 | Henüz UI yok |
-| Teklif | PDF üretimi | Designed | Teklif UI ve belge şablonu | 3 | Henüz uygulanmadı |
+| Teklif | Liste, oluşturma ve detay ekranları | Implemented | Teklif veri temeli | 3 | Supabase tabanlı müşteri arayüzü |
+| Teklif | Revizyon ekranı | Implemented | Değiştirilemez teklif sürümleri | 3 | Tam ikame kalem setiyle yeni sürüm |
+| Teklif | Durum yönetimi ekranı | Implemented | Kontrollü durum geçişleri | 3 | Terminal durumlar V1'de kapalıdır |
+| Teklif | PDF üretimi | Implemented | Teklif UI ve değiştirilemez sürüm | 3 | Müşteri güvenli, tarayıcıda indirilebilir PDF |
+| Teklif | Sınırlı owner onay ekranı | Partially implemented | Pending approval temeli | 3 | V1'de yalnız aktif owner onaylar |
 | Teklif | Yapılandırılabilir onay kuralları | Designed | Rol ve maliyet bağlantıları | 3/5 | V1 yalnız owner onayı temeli içerir |
 | Satış Siparişi | Tekliften sipariş ve karşılama | Designed | Teklif/Operasyon | 4 | Satın alma siparişi değildir |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |

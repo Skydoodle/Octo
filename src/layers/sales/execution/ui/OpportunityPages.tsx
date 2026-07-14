@@ -55,6 +55,7 @@ import type {
 } from "../types";
 import { normalizeOpportunityInput } from "../validation";
 import ActivityForm from "./ActivityForm";
+import QuoteLinks from "../../quotes/ui/QuoteLinks";
 import {
   Badge,
   FilterBox,
@@ -851,6 +852,11 @@ export function OpportunityDetailPage() {
           {o.nextAction || "Belirtilmedi"} · {datetime(o.nextActionAt)}
         </p>
       </section>
+      <QuoteLinks
+        companyId={activeCompany!.id}
+        opportunityId={o.id}
+        canWrite={canWrite && !o.archivedAt}
+      />
       <section className="rounded-card border border-line bg-surface p-6">
         <div className="flex justify-between">
           <h2 className="font-serif text-xl">Kişiler</h2>
