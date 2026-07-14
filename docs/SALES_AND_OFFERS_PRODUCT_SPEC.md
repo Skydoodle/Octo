@@ -318,7 +318,11 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Teklif | PDF üretimi | Implemented | Teklif UI ve değiştirilemez sürüm | 3 | Müşteri güvenli, tarayıcıda indirilebilir PDF |
 | Teklif | Sınırlı owner onay ekranı | Partially implemented | Pending approval temeli | 3 | V1'de yalnız aktif owner onaylar |
 | Teklif | Yapılandırılabilir onay kuralları | Designed | Rol ve maliyet bağlantıları | 3/5 | V1 yalnız owner onayı temeli içerir |
-| Satış Siparişi | Tekliften sipariş ve karşılama | Designed | Teklif/Operasyon | 4 | Satın alma siparişi değildir |
+| Satış Siparişi | Veri modeli ve değiştirilemez ticari snapshot | Partially implemented | Kabul edilmiş teklif | 4 | Müşteri ekranı yok |
+| Satış Siparişi | Kabul edilmiş tekliften atomik dönüşüm | Partially implemented | Teklif veri temeli | 4 | Fırsatı veya Finance verisini değiştirmez |
+| Satış Siparişi | Kısmi karşılama ve durum geçmişi temeli | Partially implemented | Satış Siparişi veri modeli | 4 | Geri alma/düzeltme V1'de yok |
+| Satış Siparişi | Liste, detay ve karşılama ekranları | Designed | Satış Siparişi veri temeli | 4 | Henüz UI yok |
+| Finans bağlantısı | Satış Siparişi → fatura bağlantısı | Deferred | Finance veri modeli | 5 | Fatura oluşturulmaz |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |
 | Finans bağlantısı | Fatura, tahsilat, forecast-to-cash | Deferred | Finans entegrasyonu | 5 | Pipeline gelir değildir |
 | Müşteri | Müşteri Sağlığı ve Gelir Riski | Designed | CRM + Finans geçmişi | 6 | Kanıt ve veri yeterliliği |
