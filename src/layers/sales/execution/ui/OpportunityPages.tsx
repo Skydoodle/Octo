@@ -56,6 +56,7 @@ import type {
 import { normalizeOpportunityInput } from "../validation";
 import ActivityForm from "./ActivityForm";
 import QuoteLinks from "../../quotes/ui/QuoteLinks";
+import OrderLinks from "../../orders/ui/OrderLinks";
 import {
   Badge,
   FilterBox,
@@ -857,6 +858,7 @@ export function OpportunityDetailPage() {
         opportunityId={o.id}
         canWrite={canWrite && !o.archivedAt}
       />
+      <OrderLinks companyId={activeCompany!.id} opportunityId={o.id} />
       <section className="rounded-card border border-line bg-surface p-6">
         <div className="flex justify-between">
           <h2 className="font-serif text-xl">Kişiler</h2>

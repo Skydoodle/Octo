@@ -67,6 +67,7 @@ import {
   filterQuotes,
   quoteActions,
 } from "./quoteUIModel";
+import QuoteOrderPanel from "../../orders/ui/QuoteOrderPanel";
 
 async function context(companyId: string) {
   const [p, c, o] = await Promise.all([
@@ -654,7 +655,7 @@ export function QuoteDetailPage() {
     setEvidence("");
     setNotice(
       action === "accepted"
-        ? "Teklif kabul edildi. Satış siparişi dönüşümü henüz kullanıma açık değildir."
+        ? "Teklif kabul edildi."
         : "Teklif durumu güncellendi.",
     );
     await load();
@@ -902,6 +903,17 @@ export function QuoteDetailPage() {
           kuralları yoktur.
         </p>
       </section>
+      <QuoteOrderPanel
+        companyId={activeCompany!.id}
+        role={activeCompany?.role}
+        quote={q}
+        version={current}
+        itemCount={(view.items.get(current.id) ?? []).length}
+        partyName={party.displayName}
+        contactName={contact ? `${contact.firstName} ${contact.lastName ?? ""}`.trim() : null}
+        opportunityName={opp?.title ?? null}
+        ownerName={q.ownerUserId === user?.id ? "Siz" : "Ekip üyesi"}
+      />
       {action && (
         <Modal
           title={`${quoteStatusLabels[action]} işlemini onayla`}

@@ -193,11 +193,11 @@ describe("quotation routes and navigation", () => {
     ])
       expect(appSource).toContain(`path="${route}"`);
   });
-  it("places Teklifler last and omits sales orders and intelligence", () => {
-    expect(salesLayoutSource.lastIndexOf("Teklifler")).toBeGreaterThan(
+  it("places Sales Orders after Teklifler and omits intelligence", () => {
+    expect(salesLayoutSource.indexOf("Satış Siparişleri")).toBeGreaterThan(
       salesLayoutSource.indexOf("Aktiviteler ve Görevler"),
     );
-    expect(salesLayoutSource).not.toMatch(/Satış Siparişleri|Copilot|Tahminleme/);
+    expect(salesLayoutSource).not.toMatch(/Copilot|Tahminleme/);
   });
 });
 
@@ -287,14 +287,12 @@ describe("quotation creation, versions and transitions", () => {
     expect(quoteActions("accepted", false, false, true)).toEqual([]);
     expect(quotePagesSource).toContain("transitionSalesQuoteStatus(activeCompany!.id");
   });
-  it("requires evidence or reasons and never creates a sales order", () => {
+  it("requires evidence or reasons and delegates order conversion to its panel", () => {
     expect(quotePagesSource).toContain("Kabul kanıtı veya gerekçe zorunludur.");
     expect(quotePagesSource).toContain("Ret gerekçesi zorunludur.");
     expect(quotePagesSource).toContain("İptal gerekçesi zorunludur.");
-    expect(quotePagesSource).toContain(
-      "Satış siparişi dönüşümü henüz kullanıma açık değildir.",
-    );
-    expect(quotePagesSource).not.toMatch(/createSalesOrder|sales_order.*insert/i);
+    expect(quotePagesSource).toContain("<QuoteOrderPanel");
+    expect(quotePagesSource).not.toMatch(/sales_order.*insert/i);
   });
 });
 

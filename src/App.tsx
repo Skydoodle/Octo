@@ -29,6 +29,7 @@ import { OpportunityDetailPage, OpportunitiesPage } from './layers/sales/executi
 import PipelinePage from './layers/sales/execution/ui/PipelinePage'
 import ActivitiesPage from './layers/sales/execution/ui/ActivitiesPage'
 import { QuoteCreatePage, QuoteDetailPage, QuoteRevisionPage, QuotesPage } from './layers/sales/quotes/ui/QuotePages'
+import { SalesOrderDetailPage, SalesOrdersPage } from './layers/sales/orders/ui/OrderPages'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -75,6 +76,8 @@ export default function App() {
           <Route path="teklifler/yeni" element={<QuoteCreatePage />} />
           <Route path="teklifler/:quoteId" element={<QuoteDetailPage />} />
           <Route path="teklifler/:quoteId/revizyon" element={<QuoteRevisionPage />} />
+          <Route path="satis-siparisleri" element={<SalesOrdersPage />} />
+          <Route path="satis-siparisleri/:orderId" element={<SalesOrderDetailPage />} />
         </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />
