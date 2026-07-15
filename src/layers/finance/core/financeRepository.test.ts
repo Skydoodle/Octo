@@ -30,7 +30,7 @@ describe("deterministic finance calculations",()=>{
   it("assigns every receivable aging bucket",()=>{expect([0,1,31,61,91].map(receivableAgingBucket)).toEqual(["current","1_30","31_60","61_90","90_plus"])});
   it("derives currency-safe schedules and party summaries",()=>{const invoices=[invoice(),invoice({id:"invoice-2",currency:"EUR",outstandingAmount:50,dueDate:"2026-08-01"})];const summary=partyReceivableSummary("party-1",invoices,[payment()],new Date("2026-07-14"));expect(summary).toMatchObject({byCurrency:{TRY:{totalOpenReceivable:100,overdueReceivable:100},EUR:{totalOpenReceivable:50,overdueReceivable:0}},openInvoiceCount:2,lastCollectionDate:"2026-07-12",paymentHistoryCount:1});expect(receivableSchedule(invoices,new Date("2026-07-14"))[0].overdue).toBe(true)});
   it("derives account balance from opening and posted directions",()=>expect(financeAccountBalance(100,[payment({amount:50}),payment({id:"p2",direction:"outflow",amount:20})])).toBe(130));
-  it("labels statuses and methods without AI claims",()=>{expect(financeInvoiceStatusLabels.partially_paid).toBe("Kısmen ödendi");expect(financePaymentMethodLabels.bank_transfer).toBe("Banka havalesi");expect(isFinanceInvoiceTerminal("paid")).toBe(true)});
+  it("labels statuses and methods without AI claims",()=>{expect(financeInvoiceStatusLabels.partially_paid).toBe("Kısmen tahsil edildi");expect(financePaymentMethodLabels.bank_transfer).toBe("Banka havalesi");expect(isFinanceInvoiceTerminal("paid")).toBe(true)});
 });
 
 describe("finance repository",()=>{

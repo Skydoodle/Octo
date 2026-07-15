@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { buildDataCoverage } from '../../../coverage/dataCoverage'
+import { buildDataCoverageWithoutLegacyFinance } from '../../../coverage/dataCoverage'
 import {
   getIKState,
   kullanilanYillikIzin,
@@ -7,11 +7,13 @@ import {
   useIKStore,
 } from '../../../layers/hr/hrStore'
 import { izinBakiyesi } from '../../../layers/hr/attendanceTypes'
-import { useFinanceStore } from '../../../layers/finance/financeStore'
+import { useFinanceData } from '../../../layers/finance/ui/FinanceDataContext'
+import { productionFinanceCoverage } from '../../../layers/finance/ui/financeUIModel'
+import { productionSignalsOnly } from '../../../layers/finance/ui/productionFinanceSignals'
 import { useTaxStore } from '../../../layers/tax/taxStore'
 import { useOpStore } from '../../../layers/operations/opStore'
 import { runReasoningEngine } from '../../../reasoning/engine'
-import { buildReasoningSignals } from '../../../reasoning/signalAdapters'
+import { buildReasoningSignalsWithoutLegacyFinance } from '../../../reasoning/signalAdapters'
 import { useCompanyObligationSettings } from '../../../settings/companyObligationSettings'
 import {
   setInsightActionState,
@@ -34,7 +36,7 @@ const sections: Array<{ category: OwnerTaskCategory; label: string; description:
 ]
 
 export default function TasksPage() {
-  useFinanceStore()
+  const { snapshot: finance } = useFinanceData()
   useTaxStore()
   useOpStore()
   const hr = useIKStore()
@@ -44,9 +46,12 @@ export default function TasksPage() {
   const [feedback, setFeedback] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const now = new Date()
-  const signals = buildReasoningSignals(now)
+  const signals = productionSignalsOnly(buildReasoningSignalsWithoutLegacyFinance(now), finance)
   const cases = runReasoningEngine(signals, now, settings.baseCurrency)
-  const tasks = aggregateOwnerTasks({ cases, actionStates, hr, coverage: buildDataCoverage(now) })
+  const legacyCoverage = buildDataCoverageWithoutLegacyFinance(now)
+  const financeCoverage = productionFinanceCoverage(finance)
+  const coverage = {...legacyCoverage,domains:legacyCoverage.domains.map(domain=>domain.domain==='finance'?{...domain,...financeCoverage,freshness:'Supabase şirket kayıtları'}:domain)}
+  const tasks = aggregateOwnerTasks({ cases, actionStates, hr, coverage })
 
   const decideLeave = (task: OwnerTaskViewModel, status: 'onaylandi' | 'reddedildi') => {
     setIzinDurumu(task.sourceId, status)

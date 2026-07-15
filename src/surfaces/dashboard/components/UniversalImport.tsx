@@ -120,10 +120,12 @@ function ConfirmFlow(ctrl: ReturnType<typeof useFileImport>) {
 
   if (phase === 'confirm' && analysis) {
     const found = analysis.sheets.filter(s => s.kind !== 'unknown')
+    const hasLegacyFinance = found.some(s => ['accounts','transactions','invoices','cariler'].includes(s.kind))
     const guess = analysis.primaryKind
     return (
       <Modal title="İçe Aktarma" onClose={reset} width="560px">
         <div className="space-y-4">
+          {hasLegacyFinance && <div role="alert" className="rounded-card border border-warn/30 bg-warn/5 p-3 text-sm text-warn">Finans Excel aktarımı yeni şirket veri modeline henüz bağlanmadı. Bu aşamada kayıtları Finans ekranlarından oluşturun.</div>}
           {found.length > 0 ? (
             <div>
               <p className="mb-2 text-sm text-ink-soft">Octo dosyanızı inceledi ve şu kayıt türlerini buldu:</p>
@@ -146,10 +148,10 @@ function ConfirmFlow(ctrl: ReturnType<typeof useFileImport>) {
             <span className="label mb-1.5 block text-ink-mute">Aktarma yöntemi</span>
             <select value={choice} onChange={e => setChoice(e.target.value as RouteChoice)}
               className="w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink">
-              <option value="auto">{choiceLabels.auto}{guess !== 'unknown' ? ` — ${kindLabels[guess]} göründü` : ''}</option>
-              <option value="invoices">{choiceLabels.invoices}</option>
-              <option value="transactions">{choiceLabels.transactions}</option>
-              <option value="cariler">{choiceLabels.cariler}</option>
+              <option value="auto" disabled={hasLegacyFinance}>{choiceLabels.auto}{guess !== 'unknown' ? ` — ${kindLabels[guess]} göründü` : ''}</option>
+              <option value="invoices" disabled>{choiceLabels.invoices} — henüz kullanılamıyor</option>
+              <option value="transactions" disabled>{choiceLabels.transactions} — henüz kullanılamıyor</option>
+              <option value="cariler" disabled>{choiceLabels.cariler} — henüz kullanılamıyor</option>
               <option value="beyannameler">{choiceLabels.beyannameler}</option>
             </select>
             <p className="mt-1.5 text-xs text-ink-mute">Otomatik aktarım bulunan türleri yerleştirir. Bir tür seçerseniz sütun eşleştirme ekranına geçersiniz.</p>
@@ -158,7 +160,7 @@ function ConfirmFlow(ctrl: ReturnType<typeof useFileImport>) {
           <div className="flex justify-end gap-2.5 pt-1">
             <button onClick={reset} className="rounded border border-line px-5 py-2.5 text-sm text-ink-mute hover:text-ink">İptal</button>
             <button onClick={() => choice === 'auto' ? confirmAuto() : openManual(choice as SheetKind)}
-              disabled={choice === 'auto' && found.length === 0}
+              disabled={(choice === 'auto' && found.length === 0) || hasLegacyFinance}
               className="rounded bg-crimson px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40">
               {choice === 'auto' ? 'Octo’nun bulduklarını aktar' : 'Türü ve sütunları kendim seçeyim'}
             </button>

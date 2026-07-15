@@ -38,7 +38,7 @@ export default function DataManager({ onClose }: Props) {
       localStorage.removeItem('operations')
       sessionStorage.clear()
     } catch { /* ignore */ }
-    setDone('Tüm veriler temizlendi.')
+    setDone('Tarayıcıdaki demo ve uyumluluk verileri temizlendi.')
     setTimeout(() => window.location.reload(), 600)
   }
 
@@ -83,14 +83,14 @@ export default function DataManager({ onClose }: Props) {
           </div>
 
           <p className="text-sm text-ink-soft">
-            Octo'daki tüm verileri buradan temizleyebilirsin. Demo verisini görmek için ana sayfadaki "Demoyu gör" düğmesini kullan.
+            Bu bölüm yalnız tarayıcıdaki demo ve eski uyumluluk kayıtlarını yönetir. Supabase şirket kayıtları buradan silinmez.
           </p>
 
           <div className="rounded-card border border-crimson/30 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-ink">Tüm verileri temizle</div>
-                <div className="mt-0.5 text-xs text-ink-mute">Tüm faturalar, hesaplar, işlemler ve muhasebe kayıtları silinir. Geri alınamaz.</div>
+                <div className="text-sm font-medium text-ink">Demo verilerini temizle</div>
+                <div className="mt-0.5 text-xs text-ink-mute">Yalnız localStorage demo ve uyumluluk kayıtları silinir; Supabase Finance etkilenmez.</div>
               </div>
               {confirming ? (
                 <div className="flex shrink-0 gap-2">

@@ -326,14 +326,14 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Satış Siparişi | Karşılama UI | Implemented | Karşılama veri temeli | 4 | Kısmi/tam karşılama; düzeltme ve geri alma Deferred |
 | Satış Siparişi | Durum yönetimi UI | Implemented | Durum geçiş RPC'si | 4 | Tamamlanma karşılama sonucuna bağlıdır |
 | Satış Siparişi | Ticari sipariş revizyonu | Deferred | Değişiklik siparişi tasarımı | 5 | V1 snapshot değiştirilemez |
-| Finans bağlantısı | Finance UI kesimi | Deferred | Finance veri temeli | 5 | Mevcut browser-local Finance UI değişmedi |
+| Finans bağlantısı | Finance UI kesimi | Implemented | Finance veri temeli | 5 | Üretim Supabase; legacy demo izole ve taşınmadı |
 | Finans bağlantısı | Kanonik CRM/Finance firma bağlantısı temeli | Partially implemented | business_parties | 5 | Doğrudan party_id; legacy Cari senkron değil |
-| Finans bağlantısı | Satış Siparişi → fatura veri temeli | Partially implemented | Tamamlanmış Sales Order | 5 | İç Octo alacağı; Finance UI kesimi Deferred |
-| Finans bağlantısı | Alacak ve müşteri tahsilatı temeli | Partially implemented | Fatura ve Finance hesabı | 5 | Kısmi/tam tahsisat; ters kayıt yok |
+| Finans bağlantısı | Satış Siparişi → fatura veri temeli ve UI | Implemented | Tamamlanmış Sales Order | 5 | İç Octo alacağı; yasal e-Fatura değil |
+| Finans bağlantısı | Alacak ve müşteri tahsilatı temeli ve UI | Implemented | Fatura ve Finance hesabı | 5 | Kısmi/tam tahsisat; ters kayıt yok |
 | Finans bağlantısı | Deterministik forecast-to-cash veri temeli | Partially implemented | Vade ve tahsilat kayıtları | 6 | UI, tahmin ve analitik Deferred |
-| Firma 360 | Finance bağlamı UI | Deferred | Finance UI kesimi | 6 | Repository özeti var; Firma Detayı değişmedi |
+| Firma 360 | Finance bağlamı UI | Partially implemented | Finance UI kesimi | 6 | party_id bağlamı var; tam Firma 360 değil |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |
-| Finans bağlantısı | Fatura, tahsilat, forecast-to-cash | Deferred | Finans entegrasyonu | 5 | Pipeline gelir değildir |
+| Finans bağlantısı | Fatura list/detail, alacak ve tahsilat UI | Implemented | Finans entegrasyonu | 5 | Pipeline gelir değildir; forecast/analitik yok |
 | Müşteri | Müşteri Sağlığı ve Gelir Riski | Designed | CRM + Finans geçmişi | 6 | Kanıt ve veri yeterliliği |
 | Zekâ | Açıklanabilir fırsat skoru | Designed | Yeterli CRM sinyali | 6 | İlk model kural tabanlı |
 | Zekâ | Octo Satış Asistanı | Designed | Denetlenebilir veri | 6 | İnsan onayı zorunlu |

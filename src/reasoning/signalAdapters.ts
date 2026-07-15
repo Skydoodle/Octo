@@ -619,6 +619,18 @@ export function buildReasoningSignals(now = new Date()): ReasoningSignal[] {
   }, now)
 }
 
+/** Authenticated production path. Finance signals are appended from the
+ * Supabase Finance snapshot by the caller; legacy browser Finance is absent. */
+export function buildReasoningSignalsWithoutLegacyFinance(now = new Date()): ReasoningSignal[] {
+  return buildReasoningSignalsFromStates({
+    finance: { accounts: [], invoices: [], transactions: [] },
+    tax: getTaxState(),
+    hr: getIKState(),
+    operations: getOpState(),
+    settings: getCompanyObligationSettings(),
+  }, now)
+}
+
 function stableMetadata(metadata: ReasoningSignal['metadata']): ReasoningSignal['metadata'] {
   if (!metadata) return undefined
   return Object.fromEntries(Object.entries(metadata).sort(([a], [b]) => a.localeCompare(b)))

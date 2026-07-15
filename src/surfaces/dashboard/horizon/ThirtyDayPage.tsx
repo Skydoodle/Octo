@@ -9,12 +9,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useFinanceStore } from '../../../layers/finance/financeStore'
+import { useFinanceData } from '../../../layers/finance/ui/FinanceDataContext'
+import { productionSignalsOnly } from '../../../layers/finance/ui/productionFinanceSignals'
 import { useIKStore } from '../../../layers/hr/hrStore'
 import { useOpStore } from '../../../layers/operations/opStore'
 import { useTaxStore } from '../../../layers/tax/taxStore'
 import { runReasoningEngine } from '../../../reasoning/engine'
-import { buildReasoningSignals } from '../../../reasoning/signalAdapters'
+import { buildReasoningSignalsWithoutLegacyFinance } from '../../../reasoning/signalAdapters'
 import { useCompanyObligationSettings } from '../../../settings/companyObligationSettings'
 import { ExcludedDataList } from '../../../shared/utils/Confidence'
 import EmptyState from '../../../shared/utils/EmptyState'
@@ -80,14 +81,14 @@ function buildChartData(summary: ThirtyDayCashSummary): ChartPoint[] {
 
 export default function ThirtyDayPage() {
   const now = new Date()
-  const finance = useFinanceStore()
+  const { snapshot: finance } = useFinanceData()
   useTaxStore()
   useIKStore()
   useOpStore()
   const settings = useCompanyObligationSettings()
-  const signals = buildReasoningSignals(now)
+  const signals = productionSignalsOnly(buildReasoningSignalsWithoutLegacyFinance(now), finance)
   const cases = runReasoningEngine(signals, now, settings.baseCurrency)
-  const summary = buildThirtyDayCashSummary(now, signals, finance, settings)
+  const summary = buildThirtyDayCashSummary(now, signals, null, settings)
   const timeline = buildThirtyDayTimeline(now, signals)
   const chartData = buildChartData(summary)
   const timelineSignalIds = new Set(timeline.map(event => event.id))

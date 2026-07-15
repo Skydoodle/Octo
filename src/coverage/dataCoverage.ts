@@ -285,3 +285,21 @@ export function buildDataCoverage(now = new Date()): DataCoverageSnapshot {
     settings: getFreshness('company-obligation-settings'),
   })
 }
+
+/** Production company path: deliberately supplies an empty legacy Finance state.
+ * The caller replaces the Finance domain with its Supabase Finance coverage. */
+export function buildDataCoverageWithoutLegacyFinance(now = new Date()): DataCoverageSnapshot {
+  return buildDataCoverageFromStates({
+    finance: { accounts: [], invoices: [], transactions: [] },
+    tax: getTaxState(),
+    hr: getIKState(),
+    operations: getOpState(),
+    settings: getCompanyObligationSettings(),
+  }, now, {
+    finance: 'Supabase şirket kayıtları',
+    tax: getFreshness('tax'),
+    hr: getFreshness('hr'),
+    operations: getFreshness('operations'),
+    settings: getFreshness('company-obligation-settings'),
+  })
+}

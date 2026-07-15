@@ -68,8 +68,8 @@ Tüm sorgular `company_id` kapsamlıdır. RLS şirket üyeliğini doğrular; mut
 - Supabase faturası eski fatura sayılmaz; eski fatura Supabase faturası sayılmaz.
 - Yeni kayıtlar legacy Muhasebe ledger'ına post edilmez; mükerrer muhasebe etkisi yaratılmaz.
 
-Kesim ve veri taşıma daha sonraki, açıkça tasarlanmış bir aşamadır.
+Görünür üretim kesimi artık [FINANCE_UI_CUTOVER_V1.md](./FINANCE_UI_CUTOVER_V1.md) içinde belgelenmiştir. Bu kesim legacy kayıtları taşımamış veya senkronize etmemiştir; backend güvenlik ve atomiklik garantileri değişmemiştir.
 
 ## Mevcut sınırlar
 
-Finance UI kesimi, Firma 360 görünümü, fatura PDF'i, yasal e-Fatura/e-Arşiv, GİB/UBL, alış faturaları, tedarikçi ödemeleri, banka API'leri, kur dönüşümü, ters tahsilat, genel muhasebe postu, stok/Procurement etkileri, Customer Health, skor, tahmin ve analitik bu sürümde yoktur.
+Tam Firma 360 görünümü, fatura PDF'i, yasal e-Fatura/e-Arşiv, GİB/UBL, alış faturaları, tedarikçi ödemeleri, banka API'leri, kur dönüşümü, ters tahsilat, genel muhasebe postu, stok/Procurement etkileri, Customer Health, skor, tahmin ve analitik bu sürümde yoktur.

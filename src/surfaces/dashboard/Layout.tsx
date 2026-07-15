@@ -25,6 +25,7 @@ import { useAuth } from '../../auth/authContext'
 import { signOutErrorMessage } from '../../auth/authErrors'
 import { useCompanies } from '../../company/companyContext'
 import { canManageTeam } from '../../team/teamAccess'
+import { FinanceDataProvider } from '../../layers/finance/ui/FinanceDataContext'
 
 interface NavItem {
   to: string
@@ -245,7 +246,7 @@ export default function Layout() {
 
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8">
-            <Outlet />
+            <FinanceDataProvider><Outlet /></FinanceDataProvider>
           </div>
         </main>
       </div>

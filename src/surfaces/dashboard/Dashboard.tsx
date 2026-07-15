@@ -1,23 +1,19 @@
 import { Link } from 'react-router-dom'
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Check, Sparkles } from 'lucide-react'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import { buildDataCoverage } from '../../coverage/dataCoverage'
-import { calculateCashPosition, calculateMonthlyExpenses, calculateRunway } from '../../layers/finance/logic/cashPosition'
-import { getUpcomingPayables, getTotalPayables } from '../../layers/finance/logic/apSchedule'
-import { getOverdueReceivables, getTotalReceivables } from '../../layers/finance/logic/arAging'
-import { momDelta, monthlyTrend as buildTrend } from '../../layers/finance/logic/metrics'
-import { useFinanceStore } from '../../layers/finance/financeStore'
+import { ArrowDownRight, ArrowUpRight, Sparkles } from 'lucide-react'
+import { buildDataCoverageWithoutLegacyFinance } from '../../coverage/dataCoverage'
+import { useFinanceData } from '../../layers/finance/ui/FinanceDataContext'
+import { currencyOverview, productionFinanceCoverage } from '../../layers/finance/ui/financeUIModel'
+import { productionSignalsOnly } from '../../layers/finance/ui/productionFinanceSignals'
 import { useIKStore } from '../../layers/hr/hrStore'
 import { useOpStore } from '../../layers/operations/opStore'
 import { useTaxStore } from '../../layers/tax/taxStore'
 import { useBriefing } from '../../orchestrator/useBriefing'
 import type { Aciliyet } from '../../orchestrator/orchestrator'
 import { runReasoningEngine } from '../../reasoning/engine'
-import { buildReasoningSignals } from '../../reasoning/signalAdapters'
+import { buildReasoningSignalsWithoutLegacyFinance } from '../../reasoning/signalAdapters'
 import { useCompanyObligationSettings, type CompanyBaseCurrency } from '../../settings/companyObligationSettings'
 import EmptyState from '../../shared/utils/EmptyState'
 import { Card, Label } from '../../shared/utils/ui'
-import { buildAuditSummary } from './dashboardData'
 import { useDataManager } from './dataManagerContext'
 import DataCoverageCard from './components/DataCoverageCard'
 import { ImportZone } from './components/UniversalImport'
@@ -109,73 +105,55 @@ function BusinessPulse({
 export default function Dashboard() {
   const now = new Date()
   const openData = useDataManager()
-  const { briefing, loading, regenerate } = useBriefing()
-  const finance = useFinanceStore()
+  const { snapshot: finance, loading: financeLoading } = useFinanceData()
   const companySettings = useCompanyObligationSettings()
   const tax = useTaxStore()
   const hr = useIKStore()
   const operations = useOpStore()
 
-  const signals = buildReasoningSignals(now)
+  const signals = productionSignalsOnly(buildReasoningSignalsWithoutLegacyFinance(now), finance)
+  const { briefing, loading, regenerate } = useBriefing(signals)
   const cases = runReasoningEngine(signals, now, companySettings.baseCurrency)
-  const coverage = buildDataCoverage(now)
+  const legacyCoverage = buildDataCoverageWithoutLegacyFinance(now)
+  const financeCoverage = productionFinanceCoverage(finance)
+  const coverage = {...legacyCoverage,domains:legacyCoverage.domains.map(domain=>domain.domain==='finance'?{...domain,...financeCoverage,freshness:'Supabase şirket kayıtları'}:domain)}
   const ownerInsights = rankOwnerInsights(cases.map(item => buildOwnerInsightViewModel(item, now)))
   const businessStatus = deriveBusinessStatus(cases, coverage, signals, now)
-  const cashSummary = buildThirtyDayCashSummary(now, signals, finance, companySettings)
-
-  const baseAccountIds = new Set(finance.accounts
-    .filter(account => account.currency === companySettings.baseCurrency)
-    .map(account => account.id))
-  const baseInvoices = finance.invoices.filter(invoice => invoice.currency === companySettings.baseCurrency)
-  const baseTransactions = finance.transactions.filter(transaction => baseAccountIds.has(transaction.accountId))
-  const cash = calculateCashPosition(finance.accounts, companySettings.baseCurrency)
-  const monthlyExpenses = calculateMonthlyExpenses(baseTransactions)
-  const runway = calculateRunway(cash.netCash, monthlyExpenses)
-  const totalReceivables = getTotalReceivables(baseInvoices)
-  const overdueReceivables = getOverdueReceivables(baseInvoices)
-  const totalPayables = getTotalPayables(baseInvoices)
-  const upcomingPayables = getUpcomingPayables(baseInvoices)
-  const trend = buildTrend(baseTransactions, 6)
-  const cashflow = trend.map(point => ({ m: point.month, gelir: point.gelir, gider: point.gider }))
-  const audit = buildAuditSummary()
-  const last = trend[trend.length - 1]
-  const previous = trend[trend.length - 2]
-  const monthlyIncome = last?.gelir ?? 0
-  const revenueDelta = momDelta(monthlyIncome, previous?.gelir ?? 0)
-  const hasTransactions = baseTransactions.length > 0
-  const hasAnyData = finance.accounts.length > 0 || finance.invoices.length > 0 || hasTransactions ||
+  const cashSummary = buildThirtyDayCashSummary(now, signals, null, companySettings)
+  const base = currencyOverview(finance,now).find(row=>row.currency===companySettings.baseCurrency)
+  const hasAnyData = finance.accounts.length > 0 || finance.invoices.length > 0 || finance.payments.length > 0 ||
     tax.beyannameler.length > 0 || tax.compliance.length > 0 || hr.personeller.length > 0 ||
     operations.urunler.length > 0 || operations.siparisler.length > 0 || operations.uretimler.length > 0
   const pendingLeave = hr.izinler.filter(item => item.durum === 'beklemede').length
 
   const pulse = [
     {
-      label: `${companySettings.baseCurrency} nakit`,
-      value: finance.accounts.some(account => account.currency === companySettings.baseCurrency) ? fmt(cash.netCash, companySettings.baseCurrency) : 'Henüz yok',
-      hint: cash.conversionMissing ? 'Diğer para birimleri kura çevrilmedi.' : runway >= 999 ? 'Nakit pisti henüz hesaplanamıyor.' : `${runway} ay nakit pisti.`,
-      path: '/dashboard/finans',
+      label: 'Açık alacak',
+      value: base ? fmt(base.openReceivable, companySettings.baseCurrency) : 'Henüz yok',
+      hint: 'Yalnız ana para birimindeki Supabase alacakları.',
+      path: '/dashboard/finans/alacaklar',
       delta: null,
     },
     {
-      label: 'Alacaklar',
-      value: fmt(totalReceivables, companySettings.baseCurrency),
-      hint: `${fmt(overdueReceivables, companySettings.baseCurrency)} gecikmiş.`,
-      path: '/dashboard/finans',
+      label: 'Gecikmiş alacak',
+      value: base ? fmt(base.overdueReceivable, companySettings.baseCurrency) : 'Henüz yok',
+      hint: 'Vadesi geçmiş açık faturalar.',
+      path: '/dashboard/finans/alacaklar',
       delta: null,
     },
     {
-      label: 'Borçlar',
-      value: fmt(totalPayables, companySettings.baseCurrency),
-      hint: `${fmt(upcomingPayables, companySettings.baseCurrency)} 30 gün içinde.`,
-      path: '/dashboard/finans',
+      label: '30 gün içinde vadesi gelen',
+      value: base ? fmt(base.dueWithin30Days, companySettings.baseCurrency) : 'Henüz yok',
+      hint: 'Kesinleşmiş ve kısmen tahsil edilmiş faturalar.',
+      path: '/dashboard/finans/alacaklar',
       delta: null,
     },
     {
       label: 'Bu ay tahsilat',
-      value: fmt(monthlyIncome, companySettings.baseCurrency),
-      hint: 'Kayıtlı banka işlemlerine göre.',
-      path: '/dashboard/finans',
-      delta: revenueDelta,
+      value: base ? fmt(base.collectionsThisMonth, companySettings.baseCurrency) : 'Henüz yok',
+      hint: 'Octo’da kaydedilen tahsilatlar.',
+      path: '/dashboard/finans/tahsilatlar',
+      delta: null,
     },
   ]
 
@@ -241,60 +219,7 @@ export default function Dashboard() {
         </section>
       </Card>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          <div className="mb-4"><Label>Nakit akışı · 6 ay</Label></div>
-          <div className="mb-3 flex items-center gap-4 text-xs text-ink-mute">
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-crimson" />Gelir</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-mute" />Gider</span>
-          </div>
-          <div className="h-56 min-w-0">
-            {hasTransactions ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={224}>
-                <AreaChart data={cashflow} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
-                  <defs>
-                    <linearGradient id="today-income" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgb(195 75 75)" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="rgb(195 75 75)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="today-expense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgb(138 133 125)" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="rgb(138 133 125)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="m" axisLine={false} tickLine={false} tick={{ fill: 'rgb(138 133 125)', fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', borderRadius: 8, fontSize: 12 }} formatter={value => [fmt(Number(value ?? 0), companySettings.baseCurrency), '']} />
-                  <Area type="monotone" dataKey="gelir" stroke="rgb(195 75 75)" strokeWidth={2} fill="url(#today-income)" dot={false} />
-                  <Area type="monotone" dataKey="gider" stroke="rgb(138 133 125)" strokeWidth={1.5} fill="url(#today-expense)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState title="Nakit akışı verisi yok" hint="İşlem girildiğinde altı aylık akış burada görünür." />
-            )}
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <Label>Denetim özeti</Label>
-          {audit.length > 0 ? (
-            <div className="mt-4 space-y-3">
-              {audit.map(item => (
-                <div key={item.area} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`grid h-5 w-5 place-items-center rounded-full ${item.status === 'ok' ? 'bg-positive/15 text-positive' : 'bg-warn/15 text-warn'}`}>
-                      {item.status === 'ok' ? <Check size={12} /> : <AlertTriangle size={11} />}
-                    </span>
-                    <span className="text-sm text-ink">{item.area}</span>
-                  </div>
-                  <span className="text-right text-xs text-ink-mute">{item.note}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState compact title="Denetim verisi yok" hint="Vergi ve uyumluluk kayıtları girildiğinde özet burada görünür." />
-          )}
-        </Card>
-      </div>
+      <Card className="p-6"><Label>Finans veri sınırı</Label><p className="mt-3 text-sm text-ink-soft">{financeLoading?'Supabase Finans kayıtları yükleniyor…':'Octo kayıt bakiyesi doğrulanmış banka bakiyesi değildir. Gider ödemeleri, borçlar, banka mutabakatı ve güvenilir nakit pisti bu aşamada hesaplanmaz.'}</p></Card>
     </div>
   )
 }

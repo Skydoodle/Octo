@@ -2,7 +2,8 @@ import { Navigate, Routes, Route } from "react-router-dom"
 import Landing from "./pages/Landing"
 import Layout from "./surfaces/dashboard/Layout"
 import Dashboard from "./surfaces/dashboard/Dashboard"
-import Finance from "./layers/finance/Finance"
+import FinanceLayout from "./layers/finance/ui/FinanceLayout"
+import { FinanceAccountsPage, FinanceInvoicesPage, FinanceOverviewPage, InvoiceDetailPage, PaymentDetailPage, PaymentsPage, ReceivablesPage } from "./layers/finance/ui/FinancePages"
 import Vergi from './layers/tax/Vergi'
 import IK from './layers/hr/IK'
 import Operasyon from './layers/operations/Operasyon'
@@ -56,7 +57,15 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="yapilacaklar" element={<TasksPage />} />
         <Route path="30-gun" element={<ThirtyDayPage />} />
-        <Route path="finans" element={<Finance />} />
+        <Route path="finans" element={<FinanceLayout />}>
+          <Route index element={<FinanceOverviewPage />} />
+          <Route path="alacaklar" element={<ReceivablesPage />} />
+          <Route path="faturalar" element={<FinanceInvoicesPage />} />
+          <Route path="faturalar/:invoiceId" element={<InvoiceDetailPage />} />
+          <Route path="tahsilatlar" element={<PaymentsPage />} />
+          <Route path="tahsilatlar/:paymentId" element={<PaymentDetailPage />} />
+          <Route path="hesaplar" element={<FinanceAccountsPage />} />
+        </Route>
         <Route path="vergi" element={<Vergi />} />
         <Route path="hukuk" element={<Placeholder name="Hukuk" />} />
         <Route path="ik" element={<IK />} />

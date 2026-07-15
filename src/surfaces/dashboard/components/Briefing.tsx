@@ -1,7 +1,11 @@
 import { useBriefing } from '../../../orchestrator/useBriefing'
+import { useFinanceData } from '../../../layers/finance/ui/FinanceDataContext'
+import { buildReasoningSignalsWithoutLegacyFinance } from '../../../reasoning/signalAdapters'
+import { productionSignalsOnly } from '../../../layers/finance/ui/productionFinanceSignals'
 
 export default function Briefing() {
-  const { briefing, loading, error, regenerate } = useBriefing()
+  const { snapshot } = useFinanceData()
+  const { briefing, loading, error, regenerate } = useBriefing(productionSignalsOnly(buildReasoningSignalsWithoutLegacyFinance(),snapshot))
 
   return (
     <div style={{

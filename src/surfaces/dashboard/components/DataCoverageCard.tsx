@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { CheckCircle2, CircleAlert, CircleDashed, Settings2 } from 'lucide-react'
-import { buildDataCoverage, type DataCoverageStatus } from '../../../coverage/dataCoverage'
-import { useFinanceStore } from '../../../layers/finance/financeStore'
+import { buildDataCoverageWithoutLegacyFinance, type DataCoverageStatus } from '../../../coverage/dataCoverage'
+import { useFinanceData } from '../../../layers/finance/ui/FinanceDataContext'
+import { productionFinanceCoverage } from '../../../layers/finance/ui/financeUIModel'
 import { useIKStore } from '../../../layers/hr/hrStore'
 import { useOpStore } from '../../../layers/operations/opStore'
 import { useTaxStore } from '../../../layers/tax/taxStore'
@@ -105,7 +106,7 @@ function CoveragePanel({
   coverage,
   openSettings,
 }: {
-  coverage: ReturnType<typeof buildDataCoverage>
+  coverage: ReturnType<typeof buildDataCoverageWithoutLegacyFinance>
   openSettings: () => void
 }) {
   return (
@@ -146,14 +147,16 @@ function CoveragePanel({
 }
 
 export default function DataCoverageCard({ compact = false }: { compact?: boolean }) {
-  useFinanceStore()
+  const { snapshot } = useFinanceData()
   useTaxStore()
   useIKStore()
   useOpStore()
   useCompanyObligationSettings()
   const [showSettings, setShowSettings] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
-  const coverage = buildDataCoverage()
+  const legacyCoverage = buildDataCoverageWithoutLegacyFinance()
+  const finance = productionFinanceCoverage(snapshot)
+  const coverage = {...legacyCoverage,domains:legacyCoverage.domains.map(domain=>domain.domain==='finance'?{...domain,...finance,freshness:'Supabase şirket kayıtları'}:domain)}
   const ready = coverage.domains.filter(domain => domain.status === 'ready').length
   const missing = coverage.domains.reduce((sum, domain) => sum + domain.missingActions.length, 0)
 

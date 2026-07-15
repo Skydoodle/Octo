@@ -1,0 +1,8 @@
+import type { ReactNode } from "react";
+export const inputClass="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-crimson";
+export const primary="focus-ring rounded-lg bg-crimson px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50";
+export const secondary="focus-ring rounded-lg border border-line px-4 py-2.5 text-sm text-ink-soft hover:text-ink disabled:opacity-50";
+export function State({loading,error,empty,children}:{loading:boolean;error:string|null;empty?:string;children:ReactNode}){if(loading)return <div role="status" className="rounded-card border border-line bg-surface p-8 text-center text-sm text-ink-soft">Finans kayıtları yükleniyor…</div>;if(error)return <div role="alert" className="rounded-card border border-crimson/25 bg-crimson/5 p-5 text-sm text-crimson">{error}</div>;if(empty)return <div className="rounded-card border border-dashed border-line bg-surface p-8 text-center text-sm text-ink-soft">{empty}</div>;return <>{children}</>}
+export function Money({value,currency}:{value:number;currency:string}){return <>{new Intl.NumberFormat("tr-TR",{style:"currency",currency}).format(value)}</>}
+export function Info({label,children}:{label:string;children:ReactNode}){return <div><dt className="text-xs uppercase tracking-wide text-ink-mute">{label}</dt><dd className="mt-1 break-words text-sm text-ink">{children??"—"}</dd></div>}
+export function Notice({children,error=false}:{children:ReactNode;error?:boolean}){return <div role={error?"alert":"status"} className={`rounded-lg border px-4 py-3 text-sm ${error?'border-crimson/25 bg-crimson/5 text-crimson':'border-positive/25 bg-positive/5 text-positive'}`}>{children}</div>}

@@ -77,7 +77,8 @@ function validAmount(signal: ReasoningSignal): number | null {
     : null
 }
 
-function currentCash(finance: FinanceState, currency: CompanyObligationSettings['baseCurrency']): number | null {
+function currentCash(finance: FinanceState | null, currency: CompanyObligationSettings['baseCurrency']): number | null {
+  if (!finance) return null
   const accounts = finance.accounts.filter(account => account.currency === currency && Number.isFinite(account.balance))
   if (accounts.length === 0) return null
   const total = accounts.reduce((sum, account) => sum + account.balance, 0)
@@ -93,7 +94,7 @@ function eventSort(a: Omit<ThirtyDayCashEvent, 'balance'>, b: Omit<ThirtyDayCash
 export function buildThirtyDayCashSummary(
   now: Date,
   signals: ReasoningSignal[],
-  finance: FinanceState,
+  finance: FinanceState | null,
   settings: CompanyObligationSettings,
 ): ThirtyDayCashSummary {
   const startDate = dateOnlyFromLocalDate(now)
