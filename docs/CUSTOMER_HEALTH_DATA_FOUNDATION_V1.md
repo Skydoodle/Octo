@@ -57,4 +57,4 @@ Owner/employee şirket assessment'larını okur ve refresh RPC'lerini çalışt�
 
 Repository; status dağılımı, yenilenmesi gereken assessment sayısı, en eski current tarih ve negatif factor-code dağılımı üretir. Para tutarlı exposure şirket toplamında birleştirilmez.
 
-Bu fazda Customer Health veya Revenue Risk UI, Firma health görünümü, otomatik görev/aktivite/iletişim, churn modeli, makine öğrenmesi, Opportunity Scoring, Forecasting, Analytics, Sales Copilot ya da kaynak CRM/Sales/Finance mutasyonu yoktur.
+Görünür ekranlar, kontrollü yenileme akışları ve mevcut ürün sınırları [CUSTOMER_HEALTH_UI_V1.md](./CUSTOMER_HEALTH_UI_V1.md) belgesinde açıklanır. Backend garantileri değişmez: otomatik görev/aktivite/iletişim, churn modeli, makine öğrenmesi, Opportunity Scoring, Forecasting, Analytics, Sales Copilot veya kaynak CRM/Sales/Finance mutasyonu yoktur.

@@ -334,11 +334,16 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Firma 360 | Finance bağlamı UI | Partially implemented | Finance UI kesimi | 6 | party_id bağlamı var; tam Firma 360 değil |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |
 | Finans bağlantısı | Fatura list/detail, alacak ve tahsilat UI | Implemented | Finans entegrasyonu | 5 | Pipeline gelir değildir; forecast/analitik yok |
-| Müşteri | Customer Health veri modeli | Partially implemented | CRM + Sales + Finans geçmişi | 6 | Immutable assessment, factor ve evidence temeli |
-| Müşteri | Deterministik sağlık kuralları | Partially implemented | customer-health-v1 | 6 | Açıklanabilir eşikler; churn olasılığı değil |
-| Müşteri | Health evidence ve tarihçe | Partially implemented | Structured source records | 6 | Private activity içeriği dışlanır |
-| Müşteri | Şirket health özeti temeli | Partially implemented | Current assessments | 6 | Para tutarları kur olmadan birleşmez |
-| Müşteri | Customer Health ve Revenue Risk UI | Designed | Health veri temeli | 6 | Görünür ekran henüz yok |
+| Müşteri | Customer Health veri modeli | Implemented | CRM + Sales + Finans geçmişi | 6 | Immutable assessment, factor ve evidence temeli |
+| Müşteri | Deterministik sağlık kuralları | Implemented | customer-health-v1 | 6 | Açıklanabilir eşikler; churn olasılığı değil |
+| Müşteri | Health evidence ve tarihçe | Implemented | Structured source records | 6 | Private activity içeriği dışlanır |
+| Müşteri | Şirket health özeti temeli | Implemented | Current assessments | 6 | Tarihsel faktörler güncel özeti şişirmez |
+| Müşteri | Customer Health overview UI | Implemented | Health veri temeli | 6 | Firma + current assessment, unassessed ayrımı |
+| Müşteri | Customer Health detail UI | Implemented | Immutable snapshots | 6 | Faktör, kanıt, currency context ve tarihçe |
+| Müşteri | Firma Customer Health context | Partially implemented | Canonical party_id | 6 | Kompakt panel; tam Firma 360 değil |
+| Müşteri | Explainable Revenue Risk signals UI | Implemented | Current negative factors | 6 | Öngörülen kayıp veya parasal risk toplamı yok |
+| Müşteri | Predicted revenue-at-risk | Deferred | Güvenilir model ve politika | 8 | V1'de özellikle hesaplanmaz |
+| Müşteri | Otomatik health refresh ve iletişim | Deferred | Scheduler ve insan onayı | 7 | Cron, görev veya mesaj yok |
 | Zekâ | Açıklanabilir fırsat skoru | Designed | Yeterli CRM sinyali | 6 | İlk model kural tabanlı |
 | Zekâ | Octo Satış Asistanı | Designed | Denetlenebilir veri | 6 | İnsan onayı zorunlu |
 | Tahmin | Taahhüt/Beklenen/Potansiyel | Designed | Fırsat/teklif/sipariş | 7 | Muhasebe gelirinden ayrı |

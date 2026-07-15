@@ -31,6 +31,7 @@ import PipelinePage from './layers/sales/execution/ui/PipelinePage'
 import ActivitiesPage from './layers/sales/execution/ui/ActivitiesPage'
 import { QuoteCreatePage, QuoteDetailPage, QuoteRevisionPage, QuotesPage } from './layers/sales/quotes/ui/QuotePages'
 import { SalesOrderDetailPage, SalesOrdersPage } from './layers/sales/orders/ui/OrderPages'
+import { CustomerHealthDetailPage, CustomerHealthOverviewPage } from './layers/sales/health/ui/CustomerHealthPages'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -87,6 +88,9 @@ export default function App() {
           <Route path="teklifler/:quoteId/revizyon" element={<QuoteRevisionPage />} />
           <Route path="satis-siparisleri" element={<SalesOrdersPage />} />
           <Route path="satis-siparisleri/:orderId" element={<SalesOrderDetailPage />} />
+          <Route path="musteri-sagligi" element={<CustomerHealthOverviewPage />} />
+          <Route path="musteri-sagligi/:partyId" element={<CustomerHealthDetailPage />} />
+          <Route path="musteri-sagligi/:partyId/degerlendirmeler/:assessmentId" element={<CustomerHealthDetailPage />} />
         </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />

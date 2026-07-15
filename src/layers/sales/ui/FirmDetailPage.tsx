@@ -13,6 +13,7 @@ import { canWriteCRM, channelLabels, decisionLabels, formatDate, fullName, roleL
 import QuoteLinks from '../quotes/ui/QuoteLinks'
 import OrderLinks from '../orders/ui/OrderLinks'
 import FirmFinancePanel from '../../finance/ui/FirmFinancePanel'
+import FirmCustomerHealthPanel from '../health/ui/FirmCustomerHealthPanel'
 
 export default function FirmDetailPage() {
   const { activeCompany } = useCompanies(); const { partyId = '' } = useParams(); const navigate = useNavigate(); const canWrite = canWriteCRM(activeCompany)
@@ -43,6 +44,7 @@ export default function FirmDetailPage() {
     <QuoteLinks companyId={activeCompany!.id} partyId={party.id} canWrite={canWrite && !party.archivedAt} />
     <OrderLinks companyId={activeCompany!.id} partyId={party.id} />
     <FirmFinancePanel companyId={activeCompany!.id} partyId={party.id} />
+    <FirmCustomerHealthPanel companyId={activeCompany!.id} party={party} role={activeCompany!.role} />
     {modal === 'edit' && <Modal title="Firma bilgilerini düzenle" onClose={() => !saving && setModal(null)} width="780px"><FirmForm party={party} saving={saving} serverError={error} onCancel={() => setModal(null)} onUpdate={input => void run(() => updateBusinessParty(activeCompany!.id, party.id, input), 'Firma bilgileri güncellendi.')} /></Modal>}
     {modal === 'roles' && <Modal title="Ticari rolleri düzenle" onClose={() => !saving && setModal(null)}><div className="space-y-5">{error && <div role="alert" className="text-sm text-crimson">{error}</div>}<fieldset><legend className="mb-2 text-sm font-medium">En az bir rol seçin</legend><div className="flex flex-wrap gap-2">{BUSINESS_PARTY_ROLES.map(role => <label key={role} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" checked={selectedRoles.includes(role)} onChange={() => setSelectedRoles(current => current.includes(role) ? current.filter(item => item !== role) : [...current, role])}/>{roleLabels[role]}</label>)}</div></fieldset><div className="flex justify-end gap-3"><button type="button" className={buttonSecondary} onClick={() => setModal(null)}>Vazgeç</button><button type="button" disabled={saving || selectedRoles.length === 0} className={buttonPrimary} onClick={() => void run(() => setBusinessPartyRoles(activeCompany!.id, party.id, selectedRoles), 'Firma bilgileri güncellendi.')}>Kaydet</button></div></div></Modal>}
     {modal === 'archive' && <Modal title="Firmayı arşivle" onClose={() => !saving && setModal(null)}><p className="text-sm text-ink-soft">Bu firma arşivlenecek. Kayıt ve geçmiş bilgiler korunmaya devam edecek.</p>{error && <p role="alert" className="mt-3 text-sm text-crimson">{error}</p>}<div className="mt-5 flex justify-end gap-3"><button type="button" className={buttonSecondary} onClick={() => setModal(null)}>Vazgeç</button><button type="button" disabled={saving} className={buttonPrimary} onClick={() => void run(() => archiveBusinessParty(activeCompany!.id, party.id), 'Firma arşivlendi.', () => navigate('/dashboard/satis/firmalar'))}>Arşivle</button></div></Modal>}

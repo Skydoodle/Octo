@@ -25,6 +25,7 @@ export default function SalesLayout() {
               ['/dashboard/satis/aktiviteler', 'Aktiviteler ve Görevler'],
               ['/dashboard/satis/teklifler', 'Teklifler'],
               ['/dashboard/satis/satis-siparisleri', 'Satış Siparişleri'],
+              ['/dashboard/satis/musteri-sagligi', 'Müşteri Sağlığı'],
             ].map(([to, label]) => (
               <NavLink key={to} to={to} className={({ isActive }) => `focus-ring rounded-full border px-4 py-2 text-sm font-medium ${isActive ? 'border-crimson bg-crimson text-white' : 'border-line bg-paper text-ink-soft hover:border-crimson/40 hover:text-crimson'}`}>
                 {label}

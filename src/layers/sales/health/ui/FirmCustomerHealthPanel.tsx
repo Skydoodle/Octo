@@ -1,0 +1,20 @@
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { getCurrentCustomerHealthForParty, listCustomerHealthFactors, refreshCustomerHealthAssessment } from '../customerHealthRepository'
+import { confidenceLabels, healthLabels, selectPrimaryRisk, sufficiencyLabels } from '../customerHealthViewModel'
+import type { CustomerHealthAssessment, CustomerHealthFactor } from '../types'
+import type { BusinessParty } from '../../crm/types'
+import { Badge, buttonPrimary, buttonSecondary } from '../../ui/CRMUI'
+import { factorLabels, isEvaluatedToday } from './customerHealthUIModel'
+
+export default function FirmCustomerHealthPanel({ companyId, party, role }: { companyId: string; party: BusinessParty; role: string | null }) {
+  const [assessment, setAssessment] = useState<CustomerHealthAssessment | null>(null); const [factors, setFactors] = useState<CustomerHealthFactor[]>([]); const [loading, setLoading] = useState(true); const [notice, setNotice] = useState(''); const writable = role === 'owner' || role === 'employee'; const eligible = party.roles.includes('customer')
+  const load = useCallback(async () => { if (!eligible) return setLoading(false); setLoading(true); const result = await getCurrentCustomerHealthForParty(companyId, party.id); const current = result.data; if (current) { const factorResult = await listCustomerHealthFactors(companyId, current.id); setFactors(factorResult.data ?? []) } setAssessment(current ?? null); setLoading(false) }, [companyId, eligible, party.id])
+  // The effect synchronizes this Firma panel with its remote assessment.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load() }, [load])
+  const refresh = async () => { const result = await refreshCustomerHealthAssessment(companyId, { partyId: party.id }); if (result.error) return setNotice(result.error.message); setNotice(result.data.createdNew ? 'Yeni Müşteri Sağlığı değerlendirmesi oluşturuldu.' : 'Kaynak veriler değişmedi. Mevcut değerlendirme korundu.'); await load() }
+  if (!eligible) return <section className="rounded-card border border-line bg-surface p-5 md:p-7"><h2 className="font-serif text-xl">Müşteri Sağlığı</h2><p className="mt-3 text-sm text-ink-soft">Bu Firma etkin müşteri rolüne sahip olmadığı için Müşteri Sağlığı kapsamında değerlendirilmez.</p></section>
+  const primary = selectPrimaryRisk(factors), negativeCount = factors.filter(f => f.direction === 'negative').length
+  return <section className="rounded-card border border-line bg-surface p-5 md:p-7"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-serif text-xl">Müşteri Sağlığı</h2>{loading ? <p className="mt-3 text-sm text-ink-mute">Değerlendirme yükleniyor…</p> : assessment ? <><div className="mt-3 flex flex-wrap gap-2"><Badge>{healthLabels[assessment.healthStatus]}</Badge><Badge muted>{confidenceLabels[assessment.confidence]} güven</Badge><Badge muted>{sufficiencyLabels[assessment.dataSufficiency]} veri</Badge></div><p className="mt-3 text-sm text-ink-soft">{assessment.summary}</p><p className="mt-2 text-xs text-ink-mute">{assessment.evaluatedOn} · {isEvaluatedToday(assessment) ? 'Bugün yenilendi' : 'Bugün yenilenmedi'} · {primary ? factorLabels[primary.factorCode] : 'Öncelikli risk yok'} · {negativeCount} olumsuz faktör</p></> : <><Badge muted>Henüz değerlendirilmedi</Badge><p className="mt-3 text-sm text-ink-soft">Bu Firma için henüz değerlendirme snapshot’ı yoktur.</p></>}</div><div className="flex flex-wrap gap-2">{assessment && <Link className={buttonSecondary} to={`/dashboard/satis/musteri-sagligi/${party.id}`}>Detayı aç</Link>}{writable && !assessment && <button type="button" className={buttonPrimary} onClick={() => void refresh()}>Şimdi değerlendir</button>}</div></div>{notice && <p role="status" className="mt-3 text-sm text-ink-soft">{notice}</p>}{!writable && !assessment && <p className="mt-3 text-sm text-ink-mute">Salt okunur erişiminiz nedeniyle değerlendirme başlatamazsınız.</p>}</section>
+}
