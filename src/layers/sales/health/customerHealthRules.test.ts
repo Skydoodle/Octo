@@ -1,0 +1,28 @@
+import {describe,expect,it} from "vitest";import {aggregateHealth,assessConfidence,assessSufficiency,averageLateDays,daysBetween,median,onTimePaymentRatio,orderIntervalMedian,overdueRatio,percentageChange,quoteAcceptanceRatio} from "./customerHealthRules";import {assessmentState,evidenceChronology,formatCurrencyFactor,groupFactors,healthLabels,selectPrimaryRisk} from "./customerHealthViewModel";import type {CustomerHealthAssessment,CustomerHealthEvidence,CustomerHealthFactor} from "./types";
+const factor=(o:Partial<CustomerHealthFactor>={}):CustomerHealthFactor=>({id:"f",companyId:"c",partyId:"p",assessmentId:"a",factorCode:"overdue_receivable",sourceDomain:"finance",direction:"negative",severity:"warning",title:"Risk",explanation:"Kanıt",recommendation:null,observedAt:null,periodStart:null,periodEnd:null,currency:null,metricValue:null,baselineValue:null,thresholdValue:null,deltaPct:null,amount:null,evidenceCount:1,createdAt:"2026-07-15",...o});
+describe("customer health deterministic rules",()=>{
+ it("calculates calendar days",()=>expect(daysBetween("2026-07-01","2026-07-16")).toBe(15));
+ it("calculates odd and even medians",()=>{expect(median([9,1,5])).toBe(5);expect(median([1,3,7,9])).toBe(5);expect(median([])).toBeNull()});
+ it("uses at most the latest six order dates for median interval",()=>expect(orderIntervalMedian(["2026-01-01","2026-02-01","2026-03-01"])).toBe(29.5));
+ it("does not invent percentage change on zero baseline",()=>expect(percentageChange(10,0)).toBeNull());
+ it("calculates order value decline",()=>expect(percentageChange(50,100)).toBe(-50));
+ it("calculates currency-local overdue ratio",()=>expect(overdueRatio(50,100)).toBe(.5));
+ it("calculates on-time ratio using eligible dates only",()=>expect(onTimePaymentRatio([{dueDate:"2026-01-10",paidDate:"2026-01-09"},{dueDate:"2026-01-10",paidDate:"2026-01-12"},{dueDate:null,paidDate:"2026-01-01"}])).toBe(.5));
+ it("calculates average late days",()=>expect(averageLateDays([{dueDate:"2026-01-01",paidDate:"2026-01-11"},{dueDate:"2026-01-01",paidDate:"2026-01-21"}])).toBe(15));
+ it("requires terminal quote outcomes for acceptance ratio",()=>expect(quoteAcceptanceRatio(0,0)).toBeNull());
+ it("critical factor has precedence",()=>expect(aggregateHealth([factor({severity:"critical"}),factor({direction:"positive",severity:"info"})],"sufficient")).toBe("critical"));
+ it("three cross-domain warnings become critical",()=>expect(aggregateHealth([factor(),factor({id:"2",sourceDomain:"sales"}),factor({id:"3",sourceDomain:"sales"})],"sufficient")).toBe("critical"));
+ it("two warnings become risky",()=>expect(aggregateHealth([factor(),factor({id:"2"})],"sufficient")).toBe("risky"));
+ it("one warning becomes watch",()=>expect(aggregateHealth([factor()],"partial")).toBe("watch"));
+ it("positive factors cannot cancel warning",()=>expect(aggregateHealth([factor(),factor({id:"2",direction:"positive",severity:"info"})],"sufficient")).toBe("watch"));
+ it("clean sufficient evidence with positive recency becomes healthy",()=>expect(aggregateHealth([factor({direction:"positive",severity:"info"})],"sufficient")).toBe("healthy"));
+ it("partial clean evidence remains insufficient data",()=>expect(aggregateHealth([factor({direction:"positive",severity:"info"})],"partial")).toBe("insufficient_data"));
+ it("requires two domains and orders or Finance for sufficient data",()=>{expect(assessSufficiency(new Set(["orders","quotes"]),true)).toBe("sufficient");expect(assessSufficiency(new Set(["quotes"]),false)).toBe("partial");expect(assessSufficiency(new Set(),false)).toBe("insufficient")});
+ it("maps confidence to evidence quality, not probability",()=>{expect(assessConfidence(new Set(["orders","finance"]),true)).toBe("high");expect(assessConfidence(new Set(["finance"]),true)).toBe("medium");expect(assessConfidence(new Set(),false)).toBe("low")});
+ it("exposes formal Turkish labels",()=>expect(healthLabels).toMatchObject({healthy:"Sağlıklı",watch:"İzlenmeli",critical:"Kritik",insufficient_data:"Yetersiz veri"}));
+ it("groups positive and negative factors",()=>expect(groupFactors([factor(),factor({id:"2",direction:"positive",severity:"info"})])).toMatchObject({negative:[expect.anything()],positive:[expect.anything()]}));
+ it("selects critical evidence as primary risk",()=>expect(selectPrimaryRisk([factor(),factor({id:"2",factorCode:"relationship_inactivity",severity:"critical"})])?.factorCode).toBe("relationship_inactivity"));
+ it("orders evidence newest first",()=>{const e=(id:string,date:string):CustomerHealthEvidence=>({id,companyId:"c",partyId:"p",assessmentId:"a",factorId:"f",sourceType:"sales_order",sourceId:id,observedAt:date,label:"Kayıt",amount:null,currency:null,createdAt:date});expect(evidenceChronology([e("1","2026-01-01"),e("2","2026-02-01")])[0].id).toBe("2")});
+ it("formats monetary factors only with their own currency",()=>expect(formatCurrencyFactor(100,"TRY")).toContain("₺"));
+ it("distinguishes current and historical snapshots",()=>{const a={isCurrent:true} as CustomerHealthAssessment;expect(assessmentState(a)).toBe("current");expect(assessmentState({...a,isCurrent:false})).toBe("historical")});
+});

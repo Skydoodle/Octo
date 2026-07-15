@@ -334,7 +334,11 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Firma 360 | Finance bağlamı UI | Partially implemented | Finance UI kesimi | 6 | party_id bağlamı var; tam Firma 360 değil |
 | Finans bağlantısı | CRM/Cari köprüsü ve Firma 360 | Deferred | Finans veri modeli | 5 | Mevcut cariStore senkron değil |
 | Finans bağlantısı | Fatura list/detail, alacak ve tahsilat UI | Implemented | Finans entegrasyonu | 5 | Pipeline gelir değildir; forecast/analitik yok |
-| Müşteri | Müşteri Sağlığı ve Gelir Riski | Designed | CRM + Finans geçmişi | 6 | Kanıt ve veri yeterliliği |
+| Müşteri | Customer Health veri modeli | Partially implemented | CRM + Sales + Finans geçmişi | 6 | Immutable assessment, factor ve evidence temeli |
+| Müşteri | Deterministik sağlık kuralları | Partially implemented | customer-health-v1 | 6 | Açıklanabilir eşikler; churn olasılığı değil |
+| Müşteri | Health evidence ve tarihçe | Partially implemented | Structured source records | 6 | Private activity içeriği dışlanır |
+| Müşteri | Şirket health özeti temeli | Partially implemented | Current assessments | 6 | Para tutarları kur olmadan birleşmez |
+| Müşteri | Customer Health ve Revenue Risk UI | Designed | Health veri temeli | 6 | Görünür ekran henüz yok |
 | Zekâ | Açıklanabilir fırsat skoru | Designed | Yeterli CRM sinyali | 6 | İlk model kural tabanlı |
 | Zekâ | Octo Satış Asistanı | Designed | Denetlenebilir veri | 6 | İnsan onayı zorunlu |
 | Tahmin | Taahhüt/Beklenen/Potansiyel | Designed | Fırsat/teklif/sipariş | 7 | Muhasebe gelirinden ayrı |

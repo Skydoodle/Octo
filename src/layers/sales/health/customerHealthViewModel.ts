@@ -1,0 +1,11 @@
+import type { CustomerHealthAssessment,CustomerHealthConfidence,CustomerHealthDataSufficiency,CustomerHealthEvidence,CustomerHealthFactor,CustomerHealthStatus } from "./types";
+export const healthLabels:Record<CustomerHealthStatus,string>={healthy:"Sağlıklı",watch:"İzlenmeli",risky:"Riskli",critical:"Kritik",insufficient_data:"Yetersiz veri"};
+export const healthOrder:Record<CustomerHealthStatus,number>={critical:0,risky:1,watch:2,insufficient_data:3,healthy:4};
+export const confidenceLabels:Record<CustomerHealthConfidence,string>={high:"Yüksek",medium:"Orta",low:"Düşük"};
+export const sufficiencyLabels:Record<CustomerHealthDataSufficiency,string>={sufficient:"Yeterli",partial:"Kısmi",insufficient:"Yetersiz"};
+export const factorSeverityLabels={info:"Bilgi",warning:"Uyarı",critical:"Kritik"} as const;
+export const groupFactors=(factors:CustomerHealthFactor[])=>({negative:factors.filter(x=>x.direction==="negative"),positive:factors.filter(x=>x.direction==="positive"),neutral:factors.filter(x=>x.direction==="neutral")});
+export const selectPrimaryRisk=(factors:CustomerHealthFactor[])=>[...factors].filter(x=>x.direction==="negative").sort((a,b)=>(a.severity==="critical"?0:1)-(b.severity==="critical"?0:1)||a.createdAt.localeCompare(b.createdAt))[0]??null;
+export const evidenceChronology=(evidence:CustomerHealthEvidence[])=>[...evidence].sort((a,b)=>(b.observedAt??b.createdAt).localeCompare(a.observedAt??a.createdAt));
+export const assessmentState=(assessment:CustomerHealthAssessment)=>assessment.isCurrent?"current" as const:"historical" as const;
+export const formatCurrencyFactor=(value:number,currency:string|null)=>currency?new Intl.NumberFormat("tr-TR",{style:"currency",currency}).format(value):new Intl.NumberFormat("tr-TR").format(value);

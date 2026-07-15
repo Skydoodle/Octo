@@ -1,0 +1,3 @@
+export const CUSTOMER_HEALTH_RULESET="customer-health-v1" as const;
+export function validateRefreshInput(input:{partyId:string;evaluationDate?:string}){if(!input.partyId.trim())return "Firma seçilmelidir.";if(input.evaluationDate&&!/^\d{4}-\d{2}-\d{2}$/.test(input.evaluationDate))return "Değerlendirme tarihi geçerli olmalıdır.";return null}
+export function validateCompanyRefresh(input:{partyIds?:string[];evaluationDate?:string;limit?:number}){if(input.limit!==undefined&&(!Number.isInteger(input.limit)||input.limit<1||input.limit>200))return "Değerlendirme limiti 1–200 arasında olmalıdır.";if(input.evaluationDate&&!/^\d{4}-\d{2}-\d{2}$/.test(input.evaluationDate))return "Değerlendirme tarihi geçerli olmalıdır.";return null}

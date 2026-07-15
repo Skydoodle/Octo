@@ -1,0 +1,12 @@
+import type { CustomerHealthConfidence,CustomerHealthDataSufficiency,CustomerHealthFactor,CustomerHealthStatus } from "./types";
+const day=86_400_000; export const daysBetween=(from:string,to:string)=>Math.round((new Date(`${to.slice(0,10)}T00:00:00`).getTime()-new Date(`${from.slice(0,10)}T00:00:00`).getTime())/day);
+export function median(values:number[]){if(!values.length)return null;const sorted=[...values].sort((a,b)=>a-b);const middle=Math.floor(sorted.length/2);return sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2}
+export function orderIntervalMedian(dates:string[]){const sorted=[...dates].sort().slice(-6);return median(sorted.slice(1).map((value,index)=>daysBetween(sorted[index],value)))}
+export const percentageChange=(current:number,baseline:number)=>baseline===0?null:(current-baseline)/baseline*100;
+export const overdueRatio=(overdue:number,open:number)=>open>0?overdue/open:0;
+export const onTimePaymentRatio=(paid:Array<{dueDate:string|null;paidDate:string|null}>)=>{const eligible=paid.filter(x=>x.dueDate&&x.paidDate);return eligible.length?eligible.filter(x=>x.paidDate!>x.dueDate!).length/eligible.length:null};
+export const averageLateDays=(paid:Array<{dueDate:string|null;paidDate:string|null}>)=>{const late=paid.filter(x=>x.dueDate&&x.paidDate&&x.paidDate>x.dueDate).map(x=>daysBetween(x.dueDate!,x.paidDate!));return late.length?late.reduce((a,b)=>a+b,0)/late.length:null};
+export const quoteAcceptanceRatio=(accepted:number,total:number)=>total>0?accepted/total:null;
+export function aggregateHealth(factors:Pick<CustomerHealthFactor,"direction"|"severity"|"sourceDomain">[],sufficiency:CustomerHealthDataSufficiency):CustomerHealthStatus{const negative=factors.filter(x=>x.direction==="negative");const critical=negative.filter(x=>x.severity==="critical").length;const warning=negative.filter(x=>x.severity==="warning");if(critical||warning.length>=3&&warning.some(x=>x.sourceDomain==="sales")&&warning.some(x=>x.sourceDomain==="finance"))return "critical";if(warning.length>=2)return "risky";if(warning.length===1)return "watch";if(sufficiency==="sufficient"&&factors.some(x=>x.direction==="positive"))return "healthy";return "insufficient_data"}
+export const assessSufficiency=(domains:Set<string>,hasOrdersOrFinance:boolean):CustomerHealthDataSufficiency=>domains.size>=2&&hasOrdersOrFinance?"sufficient":domains.size?"partial":"insufficient";
+export const assessConfidence=(domains:Set<string>,hasEvidence:boolean):CustomerHealthConfidence=>domains.size>=2&&hasEvidence?"high":domains.size?"medium":"low";
