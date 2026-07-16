@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route } from "react-router-dom"
+import { Routes, Route } from "react-router-dom"
 import Landing from "./pages/Landing"
 import Layout from "./surfaces/dashboard/Layout"
 import Dashboard from "./surfaces/dashboard/Dashboard"
@@ -32,6 +32,7 @@ import ActivitiesPage from './layers/sales/execution/ui/ActivitiesPage'
 import { QuoteCreatePage, QuoteDetailPage, QuoteRevisionPage, QuotesPage } from './layers/sales/quotes/ui/QuotePages'
 import { SalesOrderDetailPage, SalesOrdersPage } from './layers/sales/orders/ui/OrderPages'
 import { CustomerHealthDetailPage, CustomerHealthOverviewPage } from './layers/sales/health/ui/CustomerHealthPages'
+import SalesWorkbenchPage from './layers/sales/workbench/SalesWorkbenchPage'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -72,7 +73,7 @@ export default function App() {
         <Route path="ik" element={<IK />} />
         <Route path="operasyon" element={<Operasyon />} />
         <Route path="satis" element={<SalesLayout />}>
-          <Route index element={<Navigate to="firmalar" replace />} />
+          <Route index element={<SalesWorkbenchPage />} />
           <Route path="firmalar" element={<FirmsPage />} />
           <Route path="firmalar/:partyId" element={<FirmDetailPage />} />
           <Route path="kisiler" element={<ContactsPage />} />

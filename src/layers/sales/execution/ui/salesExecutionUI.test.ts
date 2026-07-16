@@ -141,12 +141,14 @@ describe("sales execution UI routes and navigation", () => {
 
   it("orders the module navigation and omits unfinished products", () => {
     const labels = [
+      "Genel Bakış",
       "Firmalar",
       "Kişiler",
+      "Müşteri Sağlığı",
       "Potansiyel Müşteriler",
       "Fırsatlar",
       "Pipeline",
-      "Aktiviteler ve Görevler",
+      "Aktiviteler",
       "Teklifler",
       "Satış Siparişleri",
     ];

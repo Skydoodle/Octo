@@ -301,7 +301,11 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Firmalar | Firma Detayı | Implemented | Firma ve kişi verisi | 1 | Firma 360 değildir |
 | Kişiler | Liste, filtre, oluşturma, düzenleme, arşiv | Implemented | CRM repository | 1 | Yetim kişi yok |
 | Import | Firma/Kişi Excel ve CSV | Implemented | XLSX, repository | 1 | Eşleme, önizleme, kısmi sonuç |
-| Genel Bakış | Eylem odaklı satış özeti | Designed | Fırsat/aktivite/teklif | 2–3 | Sahte metrik yok |
+| Genel Bakış | Sales Workbench ve gruplanmış navigasyon | Implemented | CRM/Execution/Teklif/Sipariş/Health repository | 2–6 | Gerçek kayıt, deterministik dikkat sırası, sahte metrik yok |
+| Genel Bakış | Bugün dikkat gerektirenler | Implemented | Mevcut domain kayıtları | 2–6 | Neden ve kaynak bağlantısı görünür; gizli skor yok |
+| Genel Bakış | Octo hazırladı | Designed | Assisted Execution foundation | 7 | V1 dürüst empty state; hazırlanmış sahte iş yok |
+| Genel Bakış | Mevcut teklif onayları | Implemented | pending_approval teklifleri | 3 | Politika tabanlı onay zinciri yok |
+| Genel Bakış | Güvenli birleşik son hareketler | Partially implemented | Yapılandırılmış metadata | 2–6 | Küçük gerçek timeline; unified event query henüz yok |
 | Potansiyel Müşteri | Veri modeli, repository ve atomik dönüşüm | Partially implemented | Kanonik Firma/Kişi | 2 | Müşteri ekranı yok |
 | Potansiyel Müşteri | Liste, detay ve nitelendirme ekranları | Implemented | Execution veri temeli | 2 | Atomik dönüşüm akışı dahil |
 | Fırsat | Veri modeli, repository ve sonraki eylem kuralı | Partially implemented | Firma/Kişi/Pipeline | 2 | Müşteri ekranı yok |

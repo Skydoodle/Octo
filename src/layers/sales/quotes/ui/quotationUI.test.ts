@@ -195,7 +195,7 @@ describe("quotation routes and navigation", () => {
   });
   it("places Sales Orders after Teklifler and omits intelligence", () => {
     expect(salesLayoutSource.indexOf("Satış Siparişleri")).toBeGreaterThan(
-      salesLayoutSource.indexOf("Aktiviteler ve Görevler"),
+      salesLayoutSource.indexOf("Aktiviteler"),
     );
     expect(salesLayoutSource).not.toMatch(/Copilot|Tahminleme/);
   });

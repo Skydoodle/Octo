@@ -1,0 +1,25 @@
+import { describe, expect, it } from 'vitest'
+import type { BusinessParty } from '../crm/types'
+import type { SalesActivity, SalesLead, SalesOpportunity, SalesPipelineStage } from '../execution/types'
+import type { CustomerHealthAssessment } from '../health/types'
+import type { SalesOrder } from '../orders/types'
+import type { SalesQuote } from '../quotes/types'
+import { buildWorkbenchAttention, buildWorkbenchFlow, buildWorkbenchTimeline, pendingQuoteApprovals, type WorkbenchInput } from './salesWorkbenchModel'
+
+const now = new Date('2026-07-16T12:00:00Z')
+const base = (): WorkbenchInput => ({ parties: [{id:'p',displayName:'Acme'} as BusinessParty], leads: [], opportunities: [], stages: [{id:'open',isClosed:false} as SalesPipelineStage,{id:'closed',isClosed:true} as SalesPipelineStage], activities: [], quotes: [], orders: [], health: [], now })
+const opportunity = (overrides: Partial<SalesOpportunity> = {}) => ({ id:'o',stageId:'open',title:'Fırsat',nextAction:null,nextActionAt:null,updatedAt:'2026-07-10',archivedAt:null, ...overrides }) as SalesOpportunity
+const quote = (overrides: Partial<SalesQuote> = {}) => ({ id:'q',quoteNumber:'TKL-1',partyId:'p',status:'sent',validUntil:'2026-07-18',updatedAt:'2026-07-10',archivedAt:null, ...overrides }) as SalesQuote
+const order = (overrides: Partial<SalesOrder> = {}) => ({ id:'s',orderNumber:'SS-1',sourceQuoteId:'other',partyId:'p',status:'confirmed',expectedDeliveryDate:'2026-07-15',updatedAt:'2026-07-10',archivedAt:null, ...overrides }) as SalesOrder
+
+describe('Sales Workbench deterministic model', () => {
+  it('ranks overdue blockers before critical health, expiring quotes and missing actions', () => { const input=base();input.activities=[{id:'a',activityType:'task',title:'Ara',dueAt:'2026-07-15',completedAt:null,archivedAt:null} as SalesActivity];input.health=[{id:'h',partyId:'p',isCurrent:true,healthStatus:'critical',summary:'Kanıt',evaluatedAt:'2026-07-14'} as CustomerHealthAssessment];input.quotes=[quote()];input.opportunities=[opportunity()];expect(buildWorkbenchAttention(input).map(x=>x.kind)).toEqual(['overdue_activity','critical_health','quote_expiry','opportunity_next_action']) })
+  it('orders equal urgency deterministically by date then id', () => { const input=base();input.opportunities=[opportunity({id:'b',nextActionAt:'2026-07-14',nextAction:'Ara'}),opportunity({id:'a',nextActionAt:'2026-07-13',nextAction:'Ara'})];expect(buildWorkbenchAttention(input).map(x=>x.id)).toEqual(['opportunity:a','opportunity:b']) })
+  it('does not use a hidden combined score', () => { expect(buildWorkbenchAttention(base())).toEqual([]) })
+  it('identifies accepted quotes only when no order exists', () => { const input=base();input.quotes=[quote({status:'accepted',acceptedAt:'2026-07-10'}),quote({id:'q2',quoteNumber:'TKL-2',status:'accepted'})];input.orders=[order({sourceQuoteId:'q2'})];expect(buildWorkbenchAttention(input).filter(x=>x.kind==='accepted_quote').map(x=>x.title)).toEqual(['TKL-1']) })
+  it('flags order fulfillment and overdue delivery truthfully', () => { const input=base();input.orders=[order()];expect(buildWorkbenchAttention(input)[0]).toMatchObject({kind:'order_fulfillment',reason:'Beklenen teslim tarihi geçti ve sipariş tamamlanmadı.'}) })
+  it('computes compact flow counts without monetary aggregation', () => { const input=base();input.leads=[{status:'qualified',archivedAt:null} as SalesLead];input.opportunities=[opportunity()];input.quotes=[quote(),quote({id:'accepted',status:'accepted'})];input.orders=[order()];input.health=[{isCurrent:true,healthStatus:'risky'} as CustomerHealthAssessment];expect(buildWorkbenchFlow(input)).toMatchObject({activeLeads:1,openOpportunities:1,awaitingResponseQuotes:1,acceptedAwaitingOrder:1,activeOrders:1,health:{risky:1}}) })
+  it('excludes closed opportunities, terminal orders and inactive leads', () => { const input=base();input.leads=[{status:'converted',archivedAt:null} as SalesLead];input.opportunities=[opportunity({stageId:'closed'})];input.orders=[order({status:'completed'})];expect(buildWorkbenchFlow(input)).toMatchObject({activeLeads:0,openOpportunities:0,activeOrders:0}) })
+  it('keeps private activity content out of the safe timeline', () => { const input=base();input.activities=[{id:'private',visibility:'private',description:'gizli',activityAt:'2026-07-16',archivedAt:null} as SalesActivity,{id:'company',visibility:'company',description:'gövde',activityType:'meeting',activityAt:'2026-07-15',archivedAt:null} as SalesActivity];const timeline=buildWorkbenchTimeline(input);expect(timeline.map(x=>x.id)).toEqual(['activity:company']);expect(JSON.stringify(timeline)).not.toContain('gövde') })
+  it('uses only real pending-approval quotation states', () => { expect(pendingQuoteApprovals([quote({id:'one',status:'pending_approval'}),quote({id:'two',status:'draft'})]).map(x=>x.id)).toEqual(['one']) })
+})

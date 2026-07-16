@@ -4,6 +4,8 @@
 
 Satış ve Teklifler modülü artık Supabase Sales Execution Data Foundation V1 üzerinde çalışan Potansiyel Müşteriler, Fırsatlar, Pipeline ve Aktiviteler ve Görevler ekranlarını içerir. Üretim verisinin kaynağı execution repository katmanıdır; tarayıcıda ayrı bir üretim veri deposu oluşturulmaz.
 
+Satış katmanının ana girişi ve gruplanmış navigasyonu [Sales Workbench V1](./SALES_WORKBENCH_V1.md) belgesinde tanımlanır. Derin execution rotaları ve bu belgedeki veri/yetki garantileri değişmez.
+
 ## Rotalar
 
 - `/dashboard/satis/potansiyel-musteriler`
