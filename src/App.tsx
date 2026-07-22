@@ -33,6 +33,7 @@ import { QuoteCreatePage, QuoteDetailPage, QuoteRevisionPage, QuotesPage } from 
 import { SalesOrderDetailPage, SalesOrdersPage } from './layers/sales/orders/ui/OrderPages'
 import { CustomerHealthDetailPage, CustomerHealthOverviewPage } from './layers/sales/health/ui/CustomerHealthPages'
 import SalesWorkbenchPage from './layers/sales/workbench/SalesWorkbenchPage'
+import { PreparedWorkDetailPage, PreparedWorkPage, QuotePreparationPage } from './layers/sales/assistedExecution/ui/AssistedExecutionPages'
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -92,6 +93,9 @@ export default function App() {
           <Route path="musteri-sagligi" element={<CustomerHealthOverviewPage />} />
           <Route path="musteri-sagligi/:partyId" element={<CustomerHealthDetailPage />} />
           <Route path="musteri-sagligi/:partyId/degerlendirmeler/:assessmentId" element={<CustomerHealthDetailPage />} />
+          <Route path="hazirlanan-isler" element={<PreparedWorkPage />} />
+          <Route path="hazirlanan-isler/yeni" element={<QuotePreparationPage />} />
+          <Route path="hazirlanan-isler/:caseId" element={<PreparedWorkDetailPage />} />
         </Route>
         <Route path="voice" element={<Placeholder name="Octo Voice" />} />
         <Route path="denetim" element={<Placeholder name="Denetim" />} />

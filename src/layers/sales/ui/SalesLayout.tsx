@@ -20,7 +20,7 @@ export default function SalesLayout() {
               ['Genel Bakış', [['/dashboard/satis', 'Genel Bakış']]],
               ['Müşteriler', [['/dashboard/satis/firmalar', 'Firmalar'], ['/dashboard/satis/kisiler', 'Kişiler'], ['/dashboard/satis/musteri-sagligi', 'Müşteri Sağlığı']]],
               ['Satış Süreci', [['/dashboard/satis/potansiyel-musteriler', 'Potansiyel Müşteriler'], ['/dashboard/satis/firsatlar', 'Fırsatlar'], ['/dashboard/satis/pipeline', 'Pipeline'], ['/dashboard/satis/aktiviteler', 'Aktiviteler']]],
-              ['Ticari İşlemler', [['/dashboard/satis/teklifler', 'Teklifler'], ['/dashboard/satis/satis-siparisleri', 'Satış Siparişleri']]],
+              ['Ticari İşlemler', [['/dashboard/satis/hazirlanan-isler', 'Hazırlanan İşler'], ['/dashboard/satis/teklifler', 'Teklifler'], ['/dashboard/satis/satis-siparisleri', 'Satış Siparişleri']]],
             ].map(([group, links]) => <div key={group as string} className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center"><span className="w-28 shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-mute">{group as string}</span><div className="flex gap-2 overflow-x-auto pb-1">{(links as string[][]).map(([to, label]) => <NavLink key={to} end={to === '/dashboard/satis'} to={to} className={({ isActive }) => `focus-ring whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium ${isActive ? 'border-crimson bg-crimson text-white' : 'border-line bg-paper text-ink-soft hover:border-crimson/40 hover:text-crimson'}`}>{label}</NavLink>)}</div></div>)}
           </nav>
         </div>

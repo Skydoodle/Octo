@@ -21,13 +21,13 @@ Groups are presentation concepts only; no database or route concept was renamed.
 
 Uses existing activity, opportunity, quotation, Sales Order and Customer Health records. Deterministic ordering is: overdue blockers, critical health, expiring quotations, missing/overdue opportunity next action, accepted quotations awaiting conversion, fulfillment attention, then normal response waiting. Every item states its reason and links to the source record. There is no hidden combined score.
 
-### Octo hazırladı — Deliberately unavailable
+### Octo hazırladı — Implemented
 
-Shows an honest empty state. Assisted Execution and Quote Preparation Assistant are not implemented in this phase and no prepared case is fabricated.
+Shows real company-scoped Quote Preparation Assisted Execution cases: prepared/awaiting review, blocked and failed. Each item links to `/dashboard/satis/hazirlanan-isler/:caseId` and shows Firma, linked Fırsat, attention reason, evidence quality, blocking-input count, responsible user context and review due date where available. Empty state remains honest. This section does not alter the existing deterministic “Bugün dikkat gerektirenler” ranking.
 
-### Onayınızı bekliyor — Implemented for current quotation approvals
+### Onayınızı bekliyor — Implemented
 
-Shows only real `pending_approval` quotation records. Assisted Execution approvals and policy-based discount/term approvals do not exist yet.
+Shows real Assisted Execution cases awaiting review alongside existing `pending_approval` quotation records. No fake count or invented policy approval exists.
 
 ### Ticari akış — Implemented
 
@@ -43,4 +43,4 @@ Owner and employee users retain domain actions on the linked source pages. Accou
 
 ## Deliberate limitations
 
-There is no Assisted Execution data model, Quote Preparation Assistant, scoring, forecasting, analytics, cross-currency total, automatic scheduler, external communication, AI/LLM integration or legacy-store access. `Octo hazırladı` remains empty until its separately approved backend and review workflow exist.
+Assisted Execution and Quote Preparation Assistant V1 are implemented as documented in [Assisted Execution Data Foundation V1](./ASSISTED_EXECUTION_DATA_FOUNDATION_V1.md) and [Quote Preparation Assistant V1](./QUOTE_PREPARATION_ASSISTANT_V1.md). There is still no scoring, forecasting, broad analytics, cross-currency total, automatic scheduler, external communication, AI/LLM dependency or legacy-store access.

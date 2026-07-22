@@ -7,11 +7,13 @@ import type { SalesOrder } from '../orders/types'
 import { isDeliveryOverdue, isSalesOrderOpen, salesOrderStatusLabels } from '../orders/salesOrderViewModel'
 import type { SalesQuote } from '../quotes/types'
 import { daysUntilQuoteExpiry, quoteStatusLabels } from '../quotes/quoteViewModel'
+import type { ExecutionCase } from '../assistedExecution/types'
 
 export type WorkbenchAttentionKind = 'overdue_activity' | 'critical_health' | 'risky_health' | 'quote_expiry' | 'opportunity_next_action' | 'accepted_quote' | 'order_fulfillment' | 'quote_response'
 export interface WorkbenchAttention { id: string; kind: WorkbenchAttentionKind; priority: number; title: string; reason: string; date: string | null; href: string; action: string }
 export interface WorkbenchTimelineItem { id: string; occurredAt: string; label: string; context: string; href: string }
 export interface WorkbenchFlow { activeLeads: number; openOpportunities: number; awaitingResponseQuotes: number; acceptedAwaitingOrder: number; activeOrders: number; health: Record<CustomerHealthStatus, number> }
+export interface WorkbenchPreparedItem { id:string; title:string; partyName:string; opportunityName:string|null; reason:string; status:ExecutionCase['status']; evidenceQuality:ExecutionCase['evidenceQuality']; blockingMissingInputs:number; responsibleUserId:string; reviewDueAt:string|null; href:string }
 export interface WorkbenchInput { parties: BusinessParty[]; leads: SalesLead[]; opportunities: SalesOpportunity[]; stages: SalesPipelineStage[]; activities: SalesActivity[]; quotes: SalesQuote[]; orders: SalesOrder[]; health: CustomerHealthAssessment[]; now?: Date }
 
 const timestamp = (value: string | null | undefined) => value ? new Date(value).getTime() : Number.MAX_SAFE_INTEGER
@@ -56,3 +58,8 @@ export function buildWorkbenchTimeline(input: WorkbenchInput): WorkbenchTimeline
 }
 
 export const pendingQuoteApprovals = (quotes: SalesQuote[]) => quotes.filter(row => !row.archivedAt && row.status === 'pending_approval').sort((a, b) => timestamp(a.updatedAt) - timestamp(b.updatedAt) || a.id.localeCompare(b.id))
+
+export function buildPreparedWorkItems(cases:ExecutionCase[],parties:BusinessParty[],opportunities:SalesOpportunity[],blockingCounts:Map<string,number>):WorkbenchPreparedItem[]{
+  const names=partyMap(parties),opportunityNames=new Map(opportunities.map(row=>[row.id,row.title]));const priority:Partial<Record<ExecutionCase['status'],number>>={failed:1,awaiting_review:2,prepared:3};
+  return cases.filter(row=>!row.archivedAt&&row.caseType==='quote_preparation'&&row.status in priority).map(row=>({id:row.id,title:'Teklif çalışması',partyName:names.get(row.targetPartyId)??'Firma',opportunityName:row.targetOpportunityId?opportunityNames.get(row.targetOpportunityId)??'Bağlı fırsat':null,reason:row.status==='failed'?'Kontrollü teklif oluşturma başarısız oldu; yetkili yeniden deneme gerekiyor.':(blockingCounts.get(row.id)??0)>0?'Bloklayan ticari bilgiler tamamlanmalı.':'Hazırlanan teklif insan incelemesi ve kararı bekliyor.',status:row.status,evidenceQuality:row.evidenceQuality,blockingMissingInputs:blockingCounts.get(row.id)??0,responsibleUserId:row.responsibleUserId,reviewDueAt:row.reviewDueAt,href:`/dashboard/satis/hazirlanan-isler/${row.id}`})).sort((a,b)=>(priority[a.status]??99)-(priority[b.status]??99)||timestamp(a.reviewDueAt)-timestamp(b.reviewDueAt)||a.id.localeCompare(b.id));
+}

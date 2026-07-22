@@ -4,13 +4,13 @@
 >
 > **Status:** Active product specification
 >
-> **Current implementation stage:** CRM Foundation and Firmalar/Kişiler UI
+> **Current implementation stage:** Sales Workbench V1 and Quote Preparation Assistant V1
 >
 > **Primary audience:** Product, engineering, design and go-to-market
 >
 > **Source of truth:** This document
 >
-> **Last updated:** 12 Temmuz 2026
+> **Last updated:** 22 Temmuz 2026
 >
 > **Version:** 1.0
 
@@ -58,7 +58,8 @@ Nihai navigasyon:
 - **Fırsatlar:** Satış öncesindeki merkezi ticari işlemleri yönetir.
 - **Pipeline:** Fırsatların aşama ve ilerleme görünümüdür.
 - **Aktiviteler ve Görevler:** Görüşme, takip ve sonraki eylemleri yönetir.
-- **Teklifler:** Teklifin hazırlanmasından kabul ve revizyona kadar ticari süreci yönetir.
+- **Hazırlanan İşler:** Assisted Execution teklif çalışmalarını kanıt, varsayım, eksik bilgi, insan kararı ve sonuç geçmişiyle yönetir. **V1 uygulandı.**
+- **Teklifler:** Teklifin hazırlanmasından kabul ve revizyona kadar ticari süreci yönetir. **Veri temeli, UI/PDF ve Quote Preparation kontrollü draft oluşturma uygulandı.**
 - **Satış Siparişleri:** Kabul edilen teklifin teslimat ve faturaya dönüşümünü yönetir.
 - **Satış Tahmini:** Taahhüt, beklenen ve potansiyel geliri ayrıştırır.
 - **Müşteri Sağlığı:** Müşteri Sağlığı ve Gelir Riski’ni kanıtlarıyla açıklar.
@@ -268,6 +269,12 @@ Her aşama uygulamadan önce ayrı spesifikasyon ve doğrulama gerektirir.
 
 Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedensellik iddia edilmez.
 
+## 27.1 Assisted Execution ve Teklif Hazırlama Asistanı V1 — Uygulandı
+
+Octo'nun Observe → Understand → Recommend → Prepare → Human review → Execute → Measure outcome döngüsünün ilk tam workflow'u uygulandı. Assisted Execution yalnız hazırlanmış iş kayıtları için otoritedir; normal teklif mevcut Teklifler domain'inde draft olarak tek atomik işlemle oluşur. Kanıt, varsayım, missing input, artifact version, immutable decision/edit/event ve trusted outcome ayrıştırılır. Firma/Fırsat/Teklif entry point'leri ve `/dashboard/satis/hazirlanan-isler` route'ları eklenmiştir. Otomatik dış gönderim, autonomous pricing/discount/payment/delivery, generic agent, scoring, forecasting ve broad analytics kapsam dışıdır.
+
+Uygulama ayrıntıları: [Assisted Execution Data Foundation V1](./ASSISTED_EXECUTION_DATA_FOUNDATION_V1.md) ve [Quote Preparation Assistant V1](./QUOTE_PREPARATION_ASSISTANT_V1.md).
+
 ## 28. Terminoloji
 
 | İngilizce | Tercih edilen müşteri terimi | Not |
@@ -303,8 +310,8 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Import | Firma/Kişi Excel ve CSV | Implemented | XLSX, repository | 1 | Eşleme, önizleme, kısmi sonuç |
 | Genel Bakış | Sales Workbench ve gruplanmış navigasyon | Implemented | CRM/Execution/Teklif/Sipariş/Health repository | 2–6 | Gerçek kayıt, deterministik dikkat sırası, sahte metrik yok |
 | Genel Bakış | Bugün dikkat gerektirenler | Implemented | Mevcut domain kayıtları | 2–6 | Neden ve kaynak bağlantısı görünür; gizli skor yok |
-| Genel Bakış | Octo hazırladı | Designed | Assisted Execution foundation | 7 | V1 dürüst empty state; hazırlanmış sahte iş yok |
-| Genel Bakış | Mevcut teklif onayları | Implemented | pending_approval teklifleri | 3 | Politika tabanlı onay zinciri yok |
+| Genel Bakış | Octo hazırladı | Implemented | Assisted Execution foundation | 7 | Gerçek prepared/blocked/failed case'ler; sahte kayıt yok |
+| Genel Bakış | Hazırlanmış iş ve mevcut teklif onayları | Implemented | execution_cases + pending_approval teklifler | 3/7 | Politika tabanlı onay zinciri yok |
 | Genel Bakış | Güvenli birleşik son hareketler | Partially implemented | Yapılandırılmış metadata | 2–6 | Küçük gerçek timeline; unified event query henüz yok |
 | Potansiyel Müşteri | Veri modeli, repository ve atomik dönüşüm | Partially implemented | Kanonik Firma/Kişi | 2 | Müşteri ekranı yok |
 | Potansiyel Müşteri | Liste, detay ve nitelendirme ekranları | Implemented | Execution veri temeli | 2 | Atomik dönüşüm akışı dahil |
@@ -321,6 +328,8 @@ Yeterli kanıt olmadan ürün kullanımı ile ticari sonuç arasında nedenselli
 | Teklif | Durum yönetimi ekranı | Implemented | Kontrollü durum geçişleri | 3 | Terminal durumlar V1'de kapalıdır |
 | Teklif | PDF üretimi | Implemented | Teklif UI ve değiştirilemez sürüm | 3 | Müşteri güvenli, tarayıcıda indirilebilir PDF |
 | Teklif | Sınırlı owner onay ekranı | Partially implemented | Pending approval temeli | 3 | V1'de yalnız aktif owner onaylar |
+| Teklif | Quote Preparation Assistant V1 | Implemented | Assisted Execution + Teklif domain'i | 7 | Deterministik hazırlama, insan onayı, atomik normal draft |
+| Teklif | Kanıt/varsayım/missing input/artifact/edit/outcome temeli | Implemented | quote-preparation-v1 | 7 | Company-scoped, immutable audit ve trusted observation |
 | Teklif | Yapılandırılabilir onay kuralları | Designed | Rol ve maliyet bağlantıları | 3/5 | V1 yalnız owner onayı temeli içerir |
 | Satış Siparişi | Veri modeli ve değiştirilemez ticari snapshot | Partially implemented | Kabul edilmiş teklif | 4 | Müşteri ekranı yok |
 | Satış Siparişi | Kabul edilmiş tekliften atomik dönüşüm | Partially implemented | Teklif veri temeli | 4 | Fırsatı veya Finance verisini değiştirmez |

@@ -4,7 +4,8 @@ import type { SalesActivity, SalesLead, SalesOpportunity, SalesPipelineStage } f
 import type { CustomerHealthAssessment } from '../health/types'
 import type { SalesOrder } from '../orders/types'
 import type { SalesQuote } from '../quotes/types'
-import { buildWorkbenchAttention, buildWorkbenchFlow, buildWorkbenchTimeline, pendingQuoteApprovals, type WorkbenchInput } from './salesWorkbenchModel'
+import { buildPreparedWorkItems, buildWorkbenchAttention, buildWorkbenchFlow, buildWorkbenchTimeline, pendingQuoteApprovals, type WorkbenchInput } from './salesWorkbenchModel'
+import type { ExecutionCase } from '../assistedExecution/types'
 
 const now = new Date('2026-07-16T12:00:00Z')
 const base = (): WorkbenchInput => ({ parties: [{id:'p',displayName:'Acme'} as BusinessParty], leads: [], opportunities: [], stages: [{id:'open',isClosed:false} as SalesPipelineStage,{id:'closed',isClosed:true} as SalesPipelineStage], activities: [], quotes: [], orders: [], health: [], now })
@@ -22,4 +23,5 @@ describe('Sales Workbench deterministic model', () => {
   it('excludes closed opportunities, terminal orders and inactive leads', () => { const input=base();input.leads=[{status:'converted',archivedAt:null} as SalesLead];input.opportunities=[opportunity({stageId:'closed'})];input.orders=[order({status:'completed'})];expect(buildWorkbenchFlow(input)).toMatchObject({activeLeads:0,openOpportunities:0,activeOrders:0}) })
   it('keeps private activity content out of the safe timeline', () => { const input=base();input.activities=[{id:'private',visibility:'private',description:'gizli',activityAt:'2026-07-16',archivedAt:null} as SalesActivity,{id:'company',visibility:'company',description:'gövde',activityType:'meeting',activityAt:'2026-07-15',archivedAt:null} as SalesActivity];const timeline=buildWorkbenchTimeline(input);expect(timeline.map(x=>x.id)).toEqual(['activity:company']);expect(JSON.stringify(timeline)).not.toContain('gövde') })
   it('uses only real pending-approval quotation states', () => { expect(pendingQuoteApprovals([quote({id:'one',status:'pending_approval'}),quote({id:'two',status:'draft'})]).map(x=>x.id)).toEqual(['one']) })
+  it('orders failed and blocked prepared work without changing attention ranking',()=>{const cases=[{id:'review',caseType:'quote_preparation',status:'awaiting_review',targetPartyId:'p',targetOpportunityId:'o',evidenceQuality:'medium',responsibleUserId:'u',reviewDueAt:null,archivedAt:null},{id:'failed',caseType:'quote_preparation',status:'failed',targetPartyId:'p',targetOpportunityId:null,evidenceQuality:'low',responsibleUserId:'u',reviewDueAt:null,archivedAt:null}] as ExecutionCase[];expect(buildPreparedWorkItems(cases,base().parties,[opportunity()],new Map([['review',2]])).map(x=>[x.id,x.blockingMissingInputs])).toEqual([['failed',0],['review',2]])})
 })

@@ -7,7 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Archive, ArrowLeft, Pencil, Plus } from "lucide-react";
+import { Archive, ArrowLeft, FilePlus2, Pencil, Plus } from "lucide-react";
 import { useCompanies } from "../../../../company/companyContext";
 import { useAuth } from "../../../../auth/authContext";
 import Modal from "../../../../surfaces/dashboard/components/Modal";
@@ -772,6 +772,12 @@ export function OpportunityDetailPage() {
           </div>
           {canWrite && !o.archivedAt && (
             <div className="flex gap-2">
+              <Link
+                className={buttonSecondary}
+                to={`/dashboard/satis/hazirlanan-isler/yeni?partyId=${o.partyId}&opportunityId=${o.id}`}
+              >
+                <FilePlus2 size={15} className="inline" /> Octo ile teklif hazırla
+              </Link>
               <button
                 type="button"
                 className={buttonSecondary}

@@ -676,6 +676,11 @@ export function QuoteDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {canWrite && !isQuoteTerminal(q.status) && !q.archivedAt && (
+              <Link className={buttonSecondary} to={`/dashboard/satis/hazirlanan-isler/yeni?partyId=${q.partyId}${q.opportunityId ? `&opportunityId=${q.opportunityId}` : ""}&quoteId=${q.id}`}>
+                <FilePlus2 size={15} className="inline" /> Octo ile hazırla
+              </Link>
+            )}
             <button
               type="button"
               className={buttonSecondary}
