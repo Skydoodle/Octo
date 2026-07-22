@@ -12,7 +12,7 @@ Entry point'ler Sales Workbench “Teklif hazırla”, açık Fırsat “Octo il
 
 Karşılaştırılabilir teklifler önce aynı Firma ve aynı currency ile sınırlandırılır; sonra aynı product/service identifier veya normalize description, benzer quantity band, recency, accepted outcome ve varsa opportunity category sırasıyla değerlendirilir. Tie `quote_id` ile stabildir. Para birimleri dönüştürülmez.
 
-Unit price kaynak sırası V1'de açık user input, latest same-party/same-currency accepted comparable ve latest relevant history'dir. Her öneride quotation/date/currency/quantity/outcome bağlamı saklanır. Savunulabilir kaynak yoksa `unit_price` null kalır, blocking missing input oluşur ve sıfır fiyat uydurulmaz.
+Unit price kaynak sırası V1'de açık user input, latest same-party/same-currency accepted comparable ve latest relevant history'dir. Her öneride quotation/date/currency/quantity/outcome ile tarihsel discount type/value bağlamı saklanır ve kaynak teklif UI'dan açılabilir. Savunulabilir kaynak yoksa `unit_price` null kalır, blocking missing input oluşur ve sıfır fiyat uydurulmaz.
 
 İndirim user input veya aynı satırın geçmiş bağlamı olarak açıklanır; tarihsel ortalama “optimal” veya policy sayılmaz. Repository'de company discount/approval policy olmadığı için policy uydurulmaz. Cost source olmadığı için margin safety hesaplanmaz veya iddia edilmez.
 
@@ -28,7 +28,7 @@ Evidence quality `high|medium|low|insufficient`, supporting records'ın complete
 
 Material quote edits quantity, unit, description, price, discount, tax, payment, validity, delivery ve notes alanlarında field path, before/after ve category ile kaydedilir. Cover email subject/body değişiklikleri `wording` olarak izlenir. Keystroke monitoring yoktur. Override doğruluk kanıtı değil, disagreement/missing-context evaluation evidence'ıdır.
 
-Blocking bilgiler UI'da ayrı görünür ve kontrollü çözülür. Original artifact overwrite edilmez. Onayda server aynı gerekli alanları tekrar doğrular ve normal quotation draft route'una bağlantı verir. Otomatik send, Sales Order veya Finance mutation yoktur.
+Blocking bilgiler UI'da ayrı görünür ve kontrollü çözülür. İnceleyen kişi taslağa satır ekleyebilir veya kaldırabilir; bu değişiklikler versiyon ve field edit olarak kaydedilir, satır fiyat blocker'ları server-side yeniden uzlaştırılır ve son satır UI'da kaldırılamaz. Original artifact overwrite edilmez. Onayda server aynı gerekli alanları tekrar doğrular ve normal quotation draft route'una bağlantı verir. Otomatik send, Sales Order veya Finance mutation yoktur.
 
 ## Sales Workbench entegrasyonu
 

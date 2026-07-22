@@ -61,6 +61,19 @@ begin
   if exists(select 1 from public.execution_evidence where case_id=first_id and (safe_summary||metadata::text) ~ 'PRIVATE-PHONE|PRIVATE-ADDRESS|PRIVATE-TAX') then raise exception 'Sensitive party data copied into evidence'; end if;
 end $$;
 
+do $$
+declare c_id uuid; draft jsonb;
+begin
+  select id into c_id from pg_temp.verify_ids where key='case_a';
+  select content into draft from public.execution_artifacts where case_id=c_id and artifact_type='quote_draft' and superseded_at is null;
+  draft:=jsonb_set(draft,'{lines}',draft->'lines'||'[{"position":2,"description":"Ek inceleme kalemi","quantity":1,"unit":"adet","unit_price":null,"price_source":null,"discount_type":null,"discount_value":0,"vat_rate":20,"other_tax_rate":0,"unit_cost":null}]'::jsonb);
+  perform public.save_quote_execution_review('20000000-0000-0000-0000-000000000001',c_id,draft,'missing_context','Kalem ekleme doğrulaması');
+  if not exists(select 1 from public.execution_missing_inputs where case_id=c_id and input_key='lines.2.unit_price' and resolved_at is null) then raise exception 'Added line did not create a price blocker'; end if;
+  draft:=jsonb_set(draft,'{lines}',(draft->'lines')-1);
+  perform public.save_quote_execution_review('20000000-0000-0000-0000-000000000001',c_id,draft,'error_correction','Kalem kaldırma doğrulaması');
+  if not exists(select 1 from public.execution_missing_inputs where case_id=c_id and input_key='lines.2.unit_price' and resolved_at is not null) then raise exception 'Removed line price blocker was not reconciled'; end if;
+end $$;
+
 select public.resolve_execution_missing_input('20000000-0000-0000-0000-000000000001',(select id from pg_temp.verify_ids where key='case_a'),'lines.1.unit_price','1250'::jsonb);
 select public.resolve_execution_missing_input('20000000-0000-0000-0000-000000000001',(select id from pg_temp.verify_ids where key='case_a'),'delivery_confirmation','true'::jsonb);
 do $$

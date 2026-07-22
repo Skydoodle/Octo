@@ -14,6 +14,7 @@ V1 workflow'u `quote_preparation`, ruleset'i `quote-preparation-v1`, sürümü `
 - `20260722133500_harden_execution_responsible_role.sql`: hazırlama ve onay anında responsible user'ın aktif owner/employee olmasını doğrular.
 - `20260722134500_clean_quote_preparation_lint.sql`: kullanılmayan hazırlama değişkenlerini kaldırır ve missing-price loop adını açıklaştırır.
 - `20260722135000_finish_quote_preparation_lint.sql`: PostgreSQL integer-loop iterator'ının otomatik tanımına uygun son lint temizliğidir.
+- `20260722135500_surface_quote_commercial_context.sql`: karşılaştırılabilir satırın indirim bağlamını fiyat kaynağına ekler ve insan incelemesinde eklenen/kaldırılan satırların fiyat blocker'larını yeniden uzlaştırır.
 
 Tablolar:
 
@@ -36,7 +37,7 @@ Uygulanan durumlar: `detected → prepared → awaiting_review → approved → 
 - `prepare_quote_execution_case`: company/party/contact/opportunity/quotation/sorumlu kapsamını doğrular, güvenli kanıtları toplar, deterministik fiyat kaynağı arar, missing input ve üç artifact üretir. Aynı source fingerprint için mevcut aktif case'i döndürür.
 - `refresh_quote_execution_case`: aynı snapshot'ı idempotent tutar; kaynak değişirse replacement case üretir ve önceki case'i görünür biçimde kapatır.
 - `resolve_execution_missing_input`: tip ve case durumunu server-side doğrular; delivery confirmation yalnız açık `true` ile çözülür.
-- `save_quote_execution_review`: yeni quote artifact sürümü ve material field edits üretir; önceki sürümü silmez.
+- `save_quote_execution_review`: yeni quote artifact sürümü ve material field edits üretir; önceki sürümü silmez. Satır ekleme/kaldırmada fiyat eksiklerini yeniden uzlaştırır ve boş satır listesini reddeder.
 - `save_execution_text_artifact`: cover email subject/body değişikliğini yeni sürüm ve `wording` edit kayıtlarıyla saklar.
 - `approve_quote_execution_case`: auth, company, operator, responsible user, lifecycle, blocking inputs, artifact ve quotation-required fields'i tekrar doğrular; case'i kilitler; normal teklif, version 1, items ve draft history kaydını mevcut quotation internalleriyle tek transaction içinde oluşturur; case'i bağlar ve outcome/event yazar. İç subtransaction başarısızsa quotation parçaları rollback olur, case `failed` ve güvenli error code ile denetlenebilir kalır.
 - `retry_quote_execution_case`: yalnız failed ve daha önce onaylanmış case'i yeniden yürütür; oluşturulmuş teklif varsa aynı authoritative teklifi döndürür.
@@ -56,15 +57,15 @@ Evidence'a private veya sales-team activity body, description/outcome/note, tele
 
 ## Durum matrisi
 
-| Yetenek | Durum |
-|---|---|
-| Reusable company-scoped Assisted Execution lifecycle | Implemented |
-| Quote Preparation ruleset and three artifact types | Implemented |
+| Yetenek                                                   | Durum       |
+| --------------------------------------------------------- | ----------- |
+| Reusable company-scoped Assisted Execution lifecycle      | Implemented |
+| Quote Preparation ruleset and three artifact types        | Implemented |
 | Human review, material edits, approve/reject/cancel/retry | Implemented |
-| Atomic normal quotation draft | Implemented |
-| Trusted quotation and Sales Order outcomes | Implemented |
-| Shadow-mode-compatible records | Implemented |
-| Later payment behavior linkage | Designed |
-| Automatic external sending | Deferred |
-| Autonomous policy/pricing/term changes | Deferred |
-| Generic agent/workflow builder | Deferred |
+| Atomic normal quotation draft                             | Implemented |
+| Trusted quotation and Sales Order outcomes                | Implemented |
+| Shadow-mode-compatible records                            | Implemented |
+| Later payment behavior linkage                            | Designed    |
+| Automatic external sending                                | Deferred    |
+| Autonomous policy/pricing/term changes                    | Deferred    |
+| Generic agent/workflow builder                            | Deferred    |
