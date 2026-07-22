@@ -1161,6 +1161,9 @@ export function PreparedWorkDetailPage() {
                     {metadataText(line.price_source?.discount_type)
                       ? `${metadataText(line.price_source?.discount_type) === "percentage" ? "%" : "Sabit "}${metadataText(line.price_source?.discount_value) ?? "0"}`
                       : "İndirim uygulanmamış"}
+                    {metadataText(line.price_source?.discount_sample_size)
+                      ? ` · Örneklem: ${metadataText(line.price_source?.discount_sample_size)} karşılaştırılabilir satır`
+                      : ""}
                     . Bu bilgi önerilen indirimi otomatik değiştirmez.
                   </p>
                 </div>

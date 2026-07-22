@@ -52,6 +52,7 @@ describe("Quote Preparation Assistant V1 interface", () => {
       "Ödeme koşulu:",
       "Geçerlilik:",
       "Tarihsel indirim bağlamı",
+      "Örneklem:",
       "Kalem ekle",
       "Kalemi kaldır",
     ])

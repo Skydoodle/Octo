@@ -49,6 +49,7 @@ export function rankComparableQuotes(
       (a, b) =>
         Number(sameProduct(b, request)) - Number(sameProduct(a, request)) ||
         Number(quantityBand(b, request)) - Number(quantityBand(a, request)) ||
+        dateValue(b.issueDate) - dateValue(a.issueDate) ||
         Number(b.status === "accepted") - Number(a.status === "accepted") ||
         Number(
           (b.opportunityCategory ?? null) ===
@@ -58,7 +59,6 @@ export function rankComparableQuotes(
             (a.opportunityCategory ?? null) ===
               (request.opportunityCategory ?? null),
           ) ||
-        dateValue(b.issueDate) - dateValue(a.issueDate) ||
         a.quoteId.localeCompare(b.quoteId),
     );
 }

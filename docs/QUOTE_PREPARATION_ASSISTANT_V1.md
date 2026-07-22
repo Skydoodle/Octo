@@ -14,7 +14,7 @@ Karşılaştırılabilir teklifler önce aynı Firma ve aynı currency ile sın�
 
 Unit price kaynak sırası V1'de açık user input, latest same-party/same-currency accepted comparable ve latest relevant history'dir. Her öneride quotation/date/currency/quantity/outcome ile tarihsel discount type/value bağlamı saklanır ve kaynak teklif UI'dan açılabilir. Savunulabilir kaynak yoksa `unit_price` null kalır, blocking missing input oluşur ve sıfır fiyat uydurulmaz.
 
-İndirim user input veya aynı satırın geçmiş bağlamı olarak açıklanır; tarihsel ortalama “optimal” veya policy sayılmaz. Repository'de company discount/approval policy olmadığı için policy uydurulmaz. Cost source olmadığı için margin safety hesaplanmaz veya iddia edilmez.
+İndirim user input veya aynı satırın geçmiş bağlamı olarak açıklanır; aynı Firma, currency ve karşılaştırılabilir satır geçmişinin sample size'ı ile seçilen kaydın recency'si görünürdür. Tarihsel ortalama “optimal” veya policy sayılmaz. Repository'de company discount/approval policy olmadığı için policy uydurulmaz. Cost source olmadığı için margin safety hesaplanmaz veya iddia edilmez.
 
 Payment terms açık input gerektirir; Finans gecikme kayıtları ve current Customer Health yalnız review warning/evidence üretir. Sistem vadeyi otomatik kısaltmaz, peşin ödeme dayatmaz veya risk nedeniyle teklifi tek başına bloklamaz. Validity açık tarih ister. Teslimat doğrulanmış Operations/Inventory kaynağına dayanmadığı için açık assumption ve blocking human confirmation'dır; stock, supplier availability veya delivery guarantee iddiası yoktur.
 

@@ -15,6 +15,7 @@ V1 workflow'u `quote_preparation`, ruleset'i `quote-preparation-v1`, sürümü `
 - `20260722134500_clean_quote_preparation_lint.sql`: kullanılmayan hazırlama değişkenlerini kaldırır ve missing-price loop adını açıklaştırır.
 - `20260722135000_finish_quote_preparation_lint.sql`: PostgreSQL integer-loop iterator'ının otomatik tanımına uygun son lint temizliğidir.
 - `20260722135500_surface_quote_commercial_context.sql`: karşılaştırılabilir satırın indirim bağlamını fiyat kaynağına ekler ve insan incelemesinde eklenen/kaldırılan satırların fiyat blocker'larını yeniden uzlaştırır.
+- `20260722140000_align_comparable_ranking_context.sql`: recency/accepted/category tie-break sırasını tam V1 önceliğine getirir ve karşılaştırılabilir indirim sample size'ını fiyat kaynağına ekler.
 
 Tablolar:
 

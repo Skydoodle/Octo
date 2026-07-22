@@ -40,14 +40,21 @@ describe("quote preparation rules", () => {
       }).map((x) => x.quoteId),
     ).toEqual(["q1"]);
   });
-  it("prefers same product, quantity band, accepted outcome, then recency with stable ties", () => {
+  it("prefers same product, quantity band, recency, accepted outcome, then category with stable ties", () => {
     const rows = [
-      { ...base, quoteId: "old", status: "accepted", issueDate: "2025-01-01" },
+      {
+        ...base,
+        quoteId: "old",
+        status: "accepted",
+        issueDate: "2025-01-01",
+        opportunityCategory: "same",
+      },
       {
         ...base,
         quoteId: "recent",
-        status: "accepted",
+        status: "sent",
         issueDate: "2026-02-01",
+        opportunityCategory: "other",
       },
       { ...base, quoteId: "wrong", itemCode: "OTHER", issueDate: "2026-03-01" },
     ];
@@ -58,8 +65,31 @@ describe("quote preparation rules", () => {
         description: "Hizmet",
         currency: "TRY",
         quantity: 10,
+        opportunityCategory: "same",
       }).map((x) => x.quoteId),
     ).toEqual(["recent", "old", "wrong"]);
+  });
+  it("uses accepted outcome, category, and quote id only after earlier ranking ties", () => {
+    const request = {
+      partyId: "party",
+      itemCode: "SKU",
+      description: "Hizmet",
+      currency: "TRY",
+      quantity: 10,
+      opportunityCategory: "same",
+    };
+    const rows = [
+      { ...base, quoteId: "z", status: "accepted", opportunityCategory: "other" },
+      { ...base, quoteId: "b", status: "accepted", opportunityCategory: "same" },
+      { ...base, quoteId: "a", status: "accepted", opportunityCategory: "same" },
+      { ...base, quoteId: "sent", status: "sent", opportunityCategory: "same" },
+    ];
+    expect(rankComparableQuotes(rows, request).map((x) => x.quoteId)).toEqual([
+      "a",
+      "b",
+      "z",
+      "sent",
+    ]);
   });
   it("attributes explicit and accepted prices with historical discount context and never invents zero", () => {
     const request = {
