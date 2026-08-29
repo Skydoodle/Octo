@@ -34,39 +34,16 @@ create unique index legal_entities_tax_identity_unique
 create index legal_entities_company_idx on public.legal_entities(company_id);
 create index legal_entities_status_idx on public.legal_entities(company_id, status);
 
--- Existing Octo companies currently represent one operating business each.
--- Create one default statutory entity per existing company without requiring a logged-in actor.
+-- Existing Octo workspaces currently operate as one statutory entity.
 insert into public.legal_entities(
-  company_id,
-  code,
-  display_name,
-  legal_name,
-  country_code,
-  functional_currency,
-  fiscal_year_start_month,
-  timezone,
-  is_default,
-  status,
-  created_by,
-  updated_by
+  company_id, code, display_name, legal_name, country_code, functional_currency,
+  fiscal_year_start_month, timezone, is_default, status, created_by, updated_by
 )
 select
-  c.id,
-  'MAIN',
-  c.name,
-  c.name,
-  'TR',
-  c.base_currency,
-  1,
-  'Europe/Istanbul',
-  true,
-  'active',
-  c.created_by,
-  c.created_by
+  c.id, 'MAIN', c.name, c.name, 'TR', c.base_currency,
+  1, 'Europe/Istanbul', true, 'active', c.created_by, c.created_by
 from public.companies c
-where not exists (
-  select 1 from public.legal_entities e where e.company_id = c.id
-);
+where not exists (select 1 from public.legal_entities e where e.company_id = c.id);
 
 create or replace function public.normalize_legal_entity()
 returns trigger
@@ -75,9 +52,7 @@ set search_path = ''
 as $$
 declare actor_id uuid := auth.uid();
 begin
-  if actor_id is null then
-    raise exception 'Authenticated user is required' using errcode = '42501';
-  end if;
+  if actor_id is null then raise exception 'Authenticated user is required' using errcode = '42501'; end if;
 
   if tg_op = 'UPDATE' then
     if new.company_id is distinct from old.company_id then
@@ -109,6 +84,19 @@ create trigger legal_entities_normalize
 before insert or update on public.legal_entities
 for each row execute function public.normalize_legal_entity();
 
+create or replace function public.default_legal_entity_id(target_company_id uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select e.id
+  from public.legal_entities e
+  where e.company_id = target_company_id and e.is_default and e.status = 'active'
+  limit 1;
+$$;
+
 create or replace function public.create_legal_entity(
   target_company_id uuid,
   entity_code text,
@@ -136,9 +124,7 @@ begin
 
   if make_default then
     update public.legal_entities
-    set is_default = false,
-        updated_by = actor_id,
-        updated_at = now()
+    set is_default = false, updated_by = actor_id, updated_at = now()
     where company_id = target_company_id and is_default;
   end if;
 
@@ -176,15 +162,11 @@ begin
   if not found then raise exception 'Active legal entity was not found' using errcode = 'P0002'; end if;
 
   update public.legal_entities
-  set is_default = false,
-      updated_by = actor_id,
-      updated_at = now()
+  set is_default = false, updated_by = actor_id, updated_at = now()
   where company_id = target_company_id and is_default and id <> target_legal_entity_id;
 
   update public.legal_entities
-  set is_default = true,
-      updated_by = actor_id,
-      updated_at = now()
+  set is_default = true, updated_by = actor_id, updated_at = now()
   where id = target_legal_entity_id
   returning * into selected;
 
@@ -192,7 +174,7 @@ begin
 end;
 $$;
 
--- Attach the statutory entity to the transactional headers that establish economic/accounting ownership.
+-- Statutory ownership is explicit on economic/accounting headers.
 alter table public.sales_quotes add column legal_entity_id uuid;
 alter table public.sales_orders add column legal_entity_id uuid;
 alter table public.finance_accounts add column legal_entity_id uuid;
@@ -202,55 +184,171 @@ alter table public.accounting_accounts add column legal_entity_id uuid;
 alter table public.accounting_periods add column legal_entity_id uuid;
 alter table public.accounting_journal_entries add column legal_entity_id uuid;
 
--- Backfill commercial records from the company default entity.
+-- Existing records: preserve the current one-company/one-entity semantics.
 update public.sales_quotes q
-set legal_entity_id = e.id
-from public.legal_entities e
-where e.company_id = q.company_id and e.is_default and e.status = 'active' and q.legal_entity_id is null;
+set legal_entity_id = public.default_legal_entity_id(q.company_id)
+where q.legal_entity_id is null;
 
--- Orders inherit the issuing entity from their source quote.
 update public.sales_orders o
 set legal_entity_id = q.legal_entity_id
 from public.sales_quotes q
 where q.id = o.source_quote_id and q.company_id = o.company_id and o.legal_entity_id is null;
 
--- Finance accounts belong to one statutory entity; legacy accounts are assigned to the default entity.
 update public.finance_accounts a
-set legal_entity_id = e.id
-from public.legal_entities e
-where e.company_id = a.company_id and e.is_default and e.status = 'active' and a.legal_entity_id is null;
+set legal_entity_id = public.default_legal_entity_id(a.company_id)
+where a.legal_entity_id is null;
 
--- Internal sales invoices inherit the entity from the sales order when available.
 update public.finance_invoices i
-set legal_entity_id = coalesce(o.legal_entity_id, e.id)
-from public.legal_entities e
-left join public.sales_orders o on o.company_id = e.company_id
-where e.company_id = i.company_id
-  and e.is_default and e.status = 'active'
-  and (i.source_sales_order_id is null or o.id = i.source_sales_order_id)
-  and i.legal_entity_id is null;
+set legal_entity_id = o.legal_entity_id
+from public.sales_orders o
+where i.source_sales_order_id = o.id and i.company_id = o.company_id and i.legal_entity_id is null;
 
--- Collections inherit the entity from the cash/bank account receiving the funds.
+update public.finance_invoices i
+set legal_entity_id = public.default_legal_entity_id(i.company_id)
+where i.legal_entity_id is null;
+
 update public.finance_payments p
 set legal_entity_id = a.legal_entity_id
 from public.finance_accounts a
 where a.id = p.account_id and a.company_id = p.company_id and p.legal_entity_id is null;
 
--- Existing accounting objects belong to the default entity until explicit multi-entity flows are introduced.
 update public.accounting_accounts a
-set legal_entity_id = e.id
-from public.legal_entities e
-where e.company_id = a.company_id and e.is_default and e.status = 'active' and a.legal_entity_id is null;
+set legal_entity_id = public.default_legal_entity_id(a.company_id)
+where a.legal_entity_id is null;
 
 update public.accounting_periods p
-set legal_entity_id = e.id
-from public.legal_entities e
-where e.company_id = p.company_id and e.is_default and e.status = 'active' and p.legal_entity_id is null;
+set legal_entity_id = public.default_legal_entity_id(p.company_id)
+where p.legal_entity_id is null;
 
 update public.accounting_journal_entries j
 set legal_entity_id = p.legal_entity_id
 from public.accounting_periods p
 where p.id = j.period_id and p.company_id = j.company_id and j.legal_entity_id is null;
+
+-- Compatibility bridge: existing RPC signatures keep working while entity-aware RPCs are added later.
+create or replace function public.assign_sales_quote_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then new.legal_entity_id := public.default_legal_entity_id(new.company_id); end if;
+  if new.legal_entity_id is null then raise exception 'Default legal entity is not configured' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_sales_order_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then
+    select q.legal_entity_id into new.legal_entity_id
+    from public.sales_quotes q
+    where q.id = new.source_quote_id and q.company_id = new.company_id;
+  end if;
+  if new.legal_entity_id is null then raise exception 'Sales order legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_finance_account_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then new.legal_entity_id := public.default_legal_entity_id(new.company_id); end if;
+  if new.legal_entity_id is null then raise exception 'Finance account legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_finance_invoice_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null and new.source_sales_order_id is not null then
+    select o.legal_entity_id into new.legal_entity_id
+    from public.sales_orders o
+    where o.id = new.source_sales_order_id and o.company_id = new.company_id;
+  end if;
+  if new.legal_entity_id is null then new.legal_entity_id := public.default_legal_entity_id(new.company_id); end if;
+  if new.legal_entity_id is null then raise exception 'Finance invoice legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_finance_payment_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then
+    select a.legal_entity_id into new.legal_entity_id
+    from public.finance_accounts a
+    where a.id = new.account_id and a.company_id = new.company_id;
+  end if;
+  if new.legal_entity_id is null then raise exception 'Finance payment legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_accounting_account_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then new.legal_entity_id := public.default_legal_entity_id(new.company_id); end if;
+  if new.legal_entity_id is null then raise exception 'Accounting account legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_accounting_period_legal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then new.legal_entity_id := public.default_legal_entity_id(new.company_id); end if;
+  if new.legal_entity_id is null then raise exception 'Accounting period legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create or replace function public.assign_accounting_journal_entity()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is null then
+    select p.legal_entity_id into new.legal_entity_id
+    from public.accounting_periods p
+    where p.id = new.period_id and p.company_id = new.company_id;
+  end if;
+  if new.legal_entity_id is null then raise exception 'Journal entry legal entity cannot be resolved' using errcode='23514'; end if;
+  return new;
+end $$;
+
+create trigger aaa_sales_quotes_assign_entity before insert on public.sales_quotes
+for each row execute function public.assign_sales_quote_legal_entity();
+create trigger aaa_sales_orders_assign_entity before insert on public.sales_orders
+for each row execute function public.assign_sales_order_legal_entity();
+create trigger aaa_finance_accounts_assign_entity before insert on public.finance_accounts
+for each row execute function public.assign_finance_account_legal_entity();
+create trigger aaa_finance_invoices_assign_entity before insert on public.finance_invoices
+for each row execute function public.assign_finance_invoice_legal_entity();
+create trigger aaa_finance_payments_assign_entity before insert on public.finance_payments
+for each row execute function public.assign_finance_payment_legal_entity();
+create trigger aaa_accounting_accounts_assign_entity before insert on public.accounting_accounts
+for each row execute function public.assign_accounting_account_legal_entity();
+create trigger aaa_accounting_periods_assign_entity before insert on public.accounting_periods
+for each row execute function public.assign_accounting_period_legal_entity();
+create trigger aaa_accounting_journals_assign_entity before insert on public.accounting_journal_entries
+for each row execute function public.assign_accounting_journal_entity();
+
+create or replace function public.protect_legal_entity_assignment()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.legal_entity_id is distinct from old.legal_entity_id then
+    raise exception 'Legal entity assignment is immutable after creation' using errcode='42501';
+  end if;
+  return new;
+end $$;
+
+create trigger sales_quotes_entity_immutable before update on public.sales_quotes
+for each row execute function public.protect_legal_entity_assignment();
+create trigger sales_orders_entity_immutable before update on public.sales_orders
+for each row execute function public.protect_legal_entity_assignment();
+create trigger finance_accounts_entity_immutable before update on public.finance_accounts
+for each row execute function public.protect_legal_entity_assignment();
+create trigger finance_invoices_entity_immutable before update on public.finance_invoices
+for each row execute function public.protect_legal_entity_assignment();
+create trigger finance_payments_entity_immutable before update on public.finance_payments
+for each row execute function public.protect_legal_entity_assignment();
+create trigger accounting_accounts_entity_immutable before update on public.accounting_accounts
+for each row execute function public.protect_legal_entity_assignment();
+create trigger accounting_periods_entity_immutable before update on public.accounting_periods
+for each row execute function public.protect_legal_entity_assignment();
+create trigger accounting_journals_entity_immutable before update on public.accounting_journal_entries
+for each row execute function public.protect_legal_entity_assignment();
 
 alter table public.sales_quotes alter column legal_entity_id set not null;
 alter table public.sales_orders alter column legal_entity_id set not null;
@@ -262,31 +360,23 @@ alter table public.accounting_periods alter column legal_entity_id set not null;
 alter table public.accounting_journal_entries alter column legal_entity_id set not null;
 
 alter table public.sales_quotes
-  add constraint sales_quotes_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint sales_quotes_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.sales_orders
-  add constraint sales_orders_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint sales_orders_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.finance_accounts
-  add constraint finance_accounts_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint finance_accounts_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.finance_invoices
-  add constraint finance_invoices_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint finance_invoices_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.finance_payments
-  add constraint finance_payments_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint finance_payments_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.accounting_accounts
-  add constraint accounting_accounts_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint accounting_accounts_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.accounting_periods
-  add constraint accounting_periods_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint accounting_periods_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 alter table public.accounting_journal_entries
-  add constraint accounting_journal_entries_legal_entity_company_fk
-  foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
+  add constraint accounting_journal_entries_legal_entity_company_fk foreign key(legal_entity_id, company_id) references public.legal_entities(id, company_id);
 
--- Enforce inheritance across the commercial chain without duplicating jurisdiction logic in application code.
+-- Enforce entity inheritance across the commercial/accounting chain.
 alter table public.sales_quotes add constraint sales_quotes_id_company_entity_unique unique(id, company_id, legal_entity_id);
 alter table public.sales_orders add constraint sales_orders_id_company_entity_unique unique(id, company_id, legal_entity_id);
 alter table public.finance_accounts add constraint finance_accounts_id_company_entity_unique unique(id, company_id, legal_entity_id);
@@ -321,17 +411,14 @@ create index accounting_journal_entries_entity_idx on public.accounting_journal_
 alter table public.legal_entities enable row level security;
 revoke all on table public.legal_entities from public, anon, authenticated;
 grant select on table public.legal_entities to authenticated;
-
-create policy legal_entities_read
-on public.legal_entities
-for select to authenticated
-using (public.is_company_member(company_id));
+create policy legal_entities_read on public.legal_entities for select to authenticated using(public.is_company_member(company_id));
 
 revoke all on function public.normalize_legal_entity() from public, anon, authenticated;
+revoke all on function public.default_legal_entity_id(uuid) from public, anon, authenticated;
 revoke all on function public.create_legal_entity(uuid,text,text,text,text,text,text,text,text,integer,text,boolean) from public, anon;
 revoke all on function public.set_default_legal_entity(uuid,uuid) from public, anon;
 grant execute on function public.create_legal_entity(uuid,text,text,text,text,text,text,text,text,integer,text,boolean) to authenticated;
 grant execute on function public.set_default_legal_entity(uuid,uuid) to authenticated;
 
 comment on table public.legal_entities is
-  'Statutory/legal entities inside an Octo company workspace. The workspace is the tenant boundary; legal entities own jurisdiction, functional currency and accounting activity.';
+  'Statutory/legal entities inside an Octo company workspace. Company is the tenant boundary; legal entity owns jurisdiction, functional currency and accounting activity.';
